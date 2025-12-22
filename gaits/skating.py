@@ -1,13 +1,42 @@
 import numpy as np
-from gaits.base import BaseGaitController
-from utils.math_utils import delta_vector
+from gaits.base import BaseMotionGenerator
 
-class SkatingGaitController(BaseGaitController):
-    def __init__(self, base_init_feet_pos, freq=1.0,
-                 push_ratio=0.2, recovery_ratio=0.2, glide_ratio=0.6,
-                 step_length=0.12, step_height=0.05,
-                 style="handstand"):
-        super().__init__(base_init_feet_pos, freq)
+class SkatingMotionGenerator(BaseMotionGenerator):
+    """
+    Generates walking motion by computing:
+    1. Root pose from world-frame velocity commands
+    2. Foot positions in body frame using gait patterns
+    """
+    
+    def __init__(self, initial_foot_positions_body, leg_names, 
+                 freq=1.0, duty_ratio=0.75, step_length=0.1, step_height=0.05,
+                 push_ratio=0.2, recovery_ratio=0.2, glide_ratio=0.6,style="handstand"):
+        """
+        Args:
+            initial_foot_positions_body: dict {leg_name: [x,y,z]} in body frame
+            leg_names: list of leg names (e.g., ["FL_calf", "FR_calf", "RL_calf", "RR_calf"])
+            freq: gait frequency (Hz)
+            duty_ratio: fraction of cycle in stance phase
+            step_length: forward step length (m)
+            step_height: maximum foot lift height (m)
+        """
+        self.leg_names = leg_names
+        self.freq = freq
+        self.duty = duty_ratio
+        self.step_length = step_length
+        self.step_height = step_height
+        # Store foot base positions in body frame
+        self.base_feet_pos_body = {k: v.copy() for k, v in initial_foot_positions_body.items()}
+        
+        # State
+        self.t = 0.0
+        self.root_pos = np.array([0.0, 0.0, 0.0])
+        self.root_quat = np.array([1.0, 0.0, 0.0, 0.0])  # [w,x,y,z]
+        
+        # Velocity commands (world frame)
+        self.vel_world = np.zeros(3)
+        self.omega_world = np.zeros(3)
+
         self.push_ratio = push_ratio
         self.recovery_ratio = recovery_ratio
         self.glide_ratio = glide_ratio
@@ -29,10 +58,6 @@ class SkatingGaitController(BaseGaitController):
             self.freeze_legs = []
             self.alternating_legs = [["FL_calf", "RL_calf"], ["FR_calf", "RR_calf"]]
 
-    def set_base_init_feet_pos(self, vx=1.0, yaw=0.0, dt=0.002, yaw_rate=0.0):
-        for leg in self.base_feet_pos.keys():
-            self.base_feet_pos[leg] += delta_vector(vx=vx, theta=yaw, dt=dt, yaw_rate=yaw_rate)
-
     def _compute_leg_phase(self, leg_name, t):
         if leg_name in self.freeze_legs:
             return 0.0, False
@@ -46,9 +71,19 @@ class SkatingGaitController(BaseGaitController):
             return ((time_in_period - cycle_time) / cycle_time, True) if time_in_period >= cycle_time else (1.0, False)
         return 0.0, False
 
-    def foot_target(self, leg_name, t, **kwargs):
+    def compute_foot_position_body_frame(self, leg_name, t):
+        """
+        Compute target foot position in body frame based on gait phase.
+        
+        Args:
+            leg_name: name of the leg
+            t: current time (s)
+            
+        Returns:
+            foot_pos_body: [x, y, z] in body frame
+        """
         phase, should_execute = self._compute_leg_phase(leg_name, t)
-        foot = self.base_feet_pos[leg_name].copy()
+        foot = self.base_feet_pos_body[leg_name].copy()
         if not should_execute:
             return foot
 

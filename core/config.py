@@ -24,11 +24,14 @@ def load_config(default_config_path="config/config.yaml"):
     parser.add_argument("--sim_freq", type=float, default=cfg["run"]["sim_freq"])
 
     # Motion block
-    parser.add_argument("--base_velocity", type=float, default=cfg["motion"]["base_velocity"])
+    parser.add_argument("--vx", type=float, default=cfg["motion"]["vx"])
+    parser.add_argument("--vy", type=float, default=cfg["motion"]["vy"])
+    parser.add_argument("--vz", type=float, default=cfg["motion"]["vz"])
+    parser.add_argument("--roll_rate", type=float, default=cfg["motion"]["roll_rate"])
+    parser.add_argument("--pitch_rate", type=float, default=cfg["motion"]["pitch_rate"])
     parser.add_argument("--yaw_rate", type=float, default=cfg["motion"]["yaw_rate"])
 
     # Gait block
-    parser.add_argument("--gait_name", type=str, default=cfg["gait"]["name"])
     parser.add_argument("--gait_freq", type=float, default=cfg["gait"]["freq"])
     parser.add_argument("--step_length", type=float, default=cfg["gait"]["params"]["step_length"])
     parser.add_argument("--step_height", type=float, default=cfg["gait"]["params"]["step_height"])

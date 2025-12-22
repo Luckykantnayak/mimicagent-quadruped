@@ -6,7 +6,7 @@ __pycache__/
 # Custom Ignores
 data
 extras
-scripts
+
 
 
 # C extensions

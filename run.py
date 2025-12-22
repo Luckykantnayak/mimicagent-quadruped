@@ -1,7 +1,7 @@
 # core/app.py
 from core.config import load_config
 from core.simulator import MujocoSimulator
-from core.controller import GaitControllerRunner
+from core.controller import MotionControllerRunner
 from core.recorder import MimicKitRecorder
 from pathlib import Path
 import glfw
@@ -30,7 +30,7 @@ def main():
     # --------------------------
     # Initialize gait controller
     # --------------------------
-    runner = GaitControllerRunner(sim, args)
+    runner = MotionControllerRunner(sim, args)
 
     # --------------------------
     # Initialize recorder (optional)

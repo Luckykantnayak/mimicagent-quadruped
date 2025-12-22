@@ -1,4 +1,87 @@
 import numpy as np
+from scipy.spatial.transform import Rotation as R
+
+# =====================================================
+#           MATH UTILITIES
+# =====================================================
+
+def quat_to_rotation_matrix(quat):
+    """Convert quaternion [w,x,y,z] to 3x3 rotation matrix."""
+    rot = R.from_quat([quat[1], quat[2], quat[3], quat[0]])  # scipy uses [x,y,z,w]
+    return rot.as_matrix()
+
+
+def rotation_matrix_to_quat(mat):
+    """Convert 3x3 rotation matrix to quaternion [w,x,y,z]."""
+    rot = R.from_matrix(mat)
+    q = rot.as_quat()  # [x,y,z,w]
+    return np.array([q[3], q[0], q[1], q[2]])  # [w,x,y,z]
+
+
+def integrate_pose_world_frame(pos, quat, vel_world, omega_world, dt):
+    """
+    Integrate pose given world-frame velocities.
+    
+    Args:
+        pos: current position [x,y,z]
+        quat: current orientation [w,x,y,z]
+        vel_world: linear velocity in world frame [vx, vy, vz]
+        omega_world: angular velocity in world frame [wx, wy, wz] (rad/s)
+        dt: timestep
+        
+    Returns:
+        new_pos: updated position
+        new_quat: updated orientation
+    """
+    # Linear integration
+    new_pos = pos + vel_world * dt
+    
+    # Angular integration using rotation matrix
+    R_current = quat_to_rotation_matrix(quat)
+    
+    # Create rotation matrix from angular velocity
+    angle = np.linalg.norm(omega_world) * dt
+    if angle > 1e-8:
+        axis = omega_world / np.linalg.norm(omega_world)
+        rot_delta = R.from_rotvec(axis * angle)
+        R_new = rot_delta.as_matrix() @ R_current
+    else:
+        R_new = R_current
+    
+    new_quat = rotation_matrix_to_quat(R_new)
+    
+    return new_pos, new_quat
+
+
+def world_to_body_velocity(vel_world, quat):
+    """
+    Convert world frame velocity to body frame.
+    
+    Args:
+        vel_world: velocity in world frame [vx, vy, vz]
+        quat: body orientation [w,x,y,z]
+        
+    Returns:
+        vel_body: velocity in body frame
+    """
+    R_mat = quat_to_rotation_matrix(quat)
+    return R_mat.T @ vel_world
+
+
+def body_to_world_position(pos_body, root_pos, root_quat):
+    """
+    Convert body frame position to world frame.
+    
+    Args:
+        pos_body: position in body frame [x,y,z]
+        root_pos: root position in world frame
+        root_quat: root orientation [w,x,y,z]
+        
+    Returns:
+        pos_world: position in world frame
+    """
+    R_mat = quat_to_rotation_matrix(root_quat)
+    return root_pos + R_mat @ pos_body
 
 def quat_to_euler(q):
     """
@@ -37,58 +120,6 @@ def euler_to_quat(roll, pitch, yaw):
     return np.array([w, x, y, z])
 
 
-def delta_vector(vx, theta, dt, yaw_rate=0.0):
-    """Compute delta position for body movement."""
-    if abs(yaw_rate) < 1e-6:
-        del_x = vx * np.cos(theta) * dt
-        del_y = vx * np.sin(theta) * dt
-    else:
-        del_x = (vx / yaw_rate) * (np.sin(theta + yaw_rate * dt) - np.sin(theta))
-        del_y = -(vx / yaw_rate) * (np.cos(theta + yaw_rate * dt) - np.cos(theta))
-    return np.array([del_x, del_y, 0.0])
-
-
-def integrate_yaw(quat, yaw_rate, dt):
-    """
-    Integrate yaw into a quaternion assuming rotation about world Z axis.
-
-    Args:
-        quat (np.ndarray): current quaternion [w, x, y, z] (MuJoCo format)
-        yaw_rate (float): yaw rate (rad/s)
-        dt (float): timestep (s)
-
-    Returns:
-        np.ndarray: updated quaternion [w, x, y, z]
-    """
-    yaw_delta = yaw_rate * dt
-
-    if abs(yaw_delta) < 1e-8:
-        return quat.copy()
-
-    # Incremental yaw quaternion (about Z)
-    half = 0.5 * yaw_delta
-    q_yaw = np.array([
-        np.cos(half),  # w
-        0.0,           # x
-        0.0,           # y
-        np.sin(half)   # z
-    ])
-
-    # Quaternion multiplication: q_new = q_yaw ⊗ quat
-    w1, x1, y1, z1 = q_yaw
-    w2, x2, y2, z2 = quat
-
-    q_new = np.array([
-        w1*w2 - x1*x2 - y1*y2 - z1*z2,
-        w1*x2 + x1*w2 + y1*z2 - z1*y2,
-        w1*y2 - x1*z2 + y1*w2 + z1*x2,
-        w1*z2 + x1*y2 - y1*x2 + z1*w2
-    ])
-
-    # Normalize to avoid drift
-    q_new /= np.linalg.norm(q_new)
-
-    return q_new
 
 
 def quat_to_exp_map(quat):
