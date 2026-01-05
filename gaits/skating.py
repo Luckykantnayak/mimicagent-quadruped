@@ -10,7 +10,7 @@ class SkatingMotionGenerator(BaseMotionGenerator):
     
     def __init__(self, initial_foot_positions_body, leg_names, 
                  freq=1.0, duty_ratio=0.75, step_length=0.1, step_height=0.05,
-                 push_ratio=0.2, recovery_ratio=0.2, glide_ratio=0.6,style="handstand"):
+                 push_ratio=0.2, recovery_ratio=0.2, glide_ratio=0.6, style="handstand"):
         """
         Args:
             initial_foot_positions_body: dict {leg_name: [x,y,z]} in body frame

@@ -22,6 +22,8 @@ def load_config(default_config_path="config/config.yaml"):
     parser.add_argument("--record_cycles", type=int, default=cfg["run"]["record_cycles"])
     parser.add_argument("--init_position", type=str, default=cfg["run"]["init_position"])
     parser.add_argument("--sim_freq", type=float, default=cfg["run"]["sim_freq"])
+    parser.add_argument("--version", type=str, default=cfg["run"]["version"])
+
 
     # Motion block
     parser.add_argument("--vx", type=float, default=cfg["motion"]["vx"])

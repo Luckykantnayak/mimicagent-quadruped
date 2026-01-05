@@ -4,7 +4,7 @@ from gaits.base import BaseMotionGenerator
 
 class StaticMotionGenerator(BaseMotionGenerator):
     def __init__(self, initial_foot_positions_body, leg_names, 
-                 freq=1.0, duty_ratio=0.75, step_length=0.1, step_height=0.05):
+                 freq=1.0, duty_ratio=0.75, step_length=0.1, step_height=0.05, style="handstand"):
         """
         Args:
             initial_foot_positions_body: dict {leg_name: [x,y,z]} in body frame
@@ -51,5 +51,5 @@ class StaticMotionGenerator(BaseMotionGenerator):
         Returns:
             foot_pos_body: [x, y, z] in body frame
         """
-        foot = self.base_feet_pos[leg_name].copy()
+        foot = self.base_feet_pos_body[leg_name].copy()
         return foot

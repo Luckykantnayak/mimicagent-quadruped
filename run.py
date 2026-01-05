@@ -71,9 +71,9 @@ def main():
     # --------------------------
     if recorder:
         if args.mode == "skating":
-            out_path = Path(f"../data/{args.robot}_{getattr(args, 'skating_style', 'default')}_{args.mode}_gait_mimickit.pkl")
+            out_path = Path(f"./data/{args.version}/{args.robot}_{getattr(args, 'skating_style', 'default')}_{args.mode}_gait_mimickit.pkl")
         else:
-            out_path = Path(f"../data/{args.robot}_{args.mode}_gait_mimickit.pkl")
+            out_path = Path(f"./data/{args.version}/{args.mode}.pkl")
         out_path.parent.mkdir(parents=True, exist_ok=True)
         recorder.save(out_path)
 

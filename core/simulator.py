@@ -47,6 +47,8 @@ class MujocoSimulator:
         mujoco.mj_fwdPosition(self.model, self.data)
 
     def render(self):
+        mujoco.mj_step(self.model, self.data)
+
         mujoco.mjv_updateScene(
             self.model, self.data, self.opt, self.pert,
             self.cam, mujoco.mjtCatBit.mjCAT_ALL, self.scene

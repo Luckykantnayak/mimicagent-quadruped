@@ -1,11 +1,12 @@
 run:
-  mode: "skating"          # walking | skating | pronk | backflip | static
+  mode: "walking"          # walking | skating | pronk | backflip | static
   robot: "go2w"
   init_position: "home"   # home | handstand
   sim_freq: 200
   plot: false
   record: False
   record_cycles: 2
+  version: "2025-12-28_12-44-48"
 
 motion:
   vx: 1.0
