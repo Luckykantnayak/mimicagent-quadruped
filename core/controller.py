@@ -40,29 +40,6 @@ class MotionControllerRunner:
         # -------------------------------------------------
         # Foot & ground geom IDs
         # -------------------------------------------------
-        self.foot_geom_ids = {}
-
-        for geom_id in range(self.model.ngeom):
-            geom_name = mujoco.mj_id2name(
-                self.model, mujoco.mjtObj.mjOBJ_GEOM, geom_id
-            )
-            if geom_name is None:
-                continue
-
-            if "foot" not in geom_name.lower():
-                continue
-
-            body_id = self.model.geom_bodyid[geom_id]
-            body_name = mujoco.mj_id2name(
-                self.model, mujoco.mjtObj.mjOBJ_BODY, body_id
-            )
-
-            leg = body_name.split("_")[0]  # FL / FR / RL / RR
-            self.foot_geom_ids[leg] = geom_id
-
-        self.ground_geom_id = mujoco.mj_name2id(
-            self.model, mujoco.mjtObj.mjOBJ_GEOM, "ground"
-        )
 
         # -------------------------------------------------
         # Leg names used by IK
@@ -169,28 +146,9 @@ class MotionControllerRunner:
             "root_pos": root_pos.copy(),
             "root_quat": root_quat.copy(),
             "joints": self.data.qpos[7:].copy(),
-            "foot_contacts": self.get_feet_contact(),
             "foot_positions_world": foot_targets.copy(),
         }
 
     # -------------------------------------------------
     # Contact detection
     # -------------------------------------------------
-    def get_feet_contact(self):
-        """
-        Returns:
-            dict: { "FL": bool, "FR": bool, "RL": bool, "RR": bool }
-        """
-        contact = {leg: False for leg in self.foot_geom_ids.keys()}
-
-        for i in range(self.data.ncon):
-            c = self.data.contact[i]
-
-            for leg, gid in self.foot_geom_ids.items():
-                if (
-                    (c.geom1 == gid and c.geom2 == self.ground_geom_id) or
-                    (c.geom2 == gid and c.geom1 == self.ground_geom_id)
-                ):
-                    contact[leg] = True
-
-        return contact
