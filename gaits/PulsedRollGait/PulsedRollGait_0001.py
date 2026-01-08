@@ -24,7 +24,7 @@ class SKILL_5_MotionGenerator(BaseMotionGenerator):
             expressed in the body frame at rest.
         """
         # Call base constructor with initial foot positions and desired frequency
-        super().__init__(initial_foot_positions_body, freq=2.0)
+        super().__init__(initial_foot_positions_body, freq=1.0)
 
         # Motion parameters
         self.step_length = 0.1   # forward/backward swing distance (m)

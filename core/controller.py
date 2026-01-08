@@ -46,6 +46,8 @@ class MotionControllerRunner:
         # -------------------------------------------------
         self.leg_names = ["FL_calf", "FR_calf", "RL_calf", "RR_calf"]
 
+        self.wheel_radius = 0.1040071605
+
         # -------------------------------------------------
         # IK Solver
         # -------------------------------------------------
@@ -64,6 +66,8 @@ class MotionControllerRunner:
         root_quat = self.data.qpos[3:7].copy()
 
         foot_positions_world = self.ik.get_foot_positions()
+        # foot_positions_world[:, 2] += self.wheel_radius
+
         R = quat_to_rotation_matrix(root_quat)
 
         initial_feet_body = {}
@@ -132,6 +136,7 @@ class MotionControllerRunner:
         for i, leg_name in enumerate(self.leg_names):
             foot_targets[i] = foot_positions_world[leg_name]
 
+
         self.ik.calculate(foot_targets, debug=(self.frame % 60 == 0))
 
         self.data.qpos[0:3] = root_pos
@@ -140,6 +145,8 @@ class MotionControllerRunner:
         self.frame += 1
 
         # print(foot_targets.shape)
+        print("Foot tars", foot_targets[:, 2])
+        print("Joints", len(self.data.qpos[7:]))
 
         return {
             "time": motion_state["time"],

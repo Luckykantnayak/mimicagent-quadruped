@@ -60,7 +60,7 @@ class MimicKitRecorder:
         root_quat = np.vstack(self.root_quat)  # w, x, y, z
         exp = np.vstack(self.exp)
         foot_positions = np.stack(self.foot_positions, axis=0)
-        print(foot_positions.shape)
+        # print(foot_positions.shape)
         motion = dict(
             fps=self.fps,
             loop_mode=1,

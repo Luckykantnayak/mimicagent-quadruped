@@ -10,19 +10,19 @@ class SKILL_SPIRAL_VAULT_MotionGenerator(BaseMotionGenerator):
 
     def __init__(self, initial_foot_positions_body, leg_names):
         # Call base constructor
-        super().__init__(initial_foot_positions_body, freq=1.0)
+        super().__init__(initial_foot_positions_body, freq=1.)
 
         # Gait parameters
-        self.step_height = 0.2          # maximum lift height (m)
+        self.step_height = 0.15          # maximum lift height (m)
         self.flight_roll_rate = 4 * np.pi   # rad/s, full rotation over flight phase
 
         # Phase boundaries
         self.push_off_start = 0.0
-        self.push_off_end   = 0.25
-        self.flight_start   = 0.25
-        self.flight_end     = 0.75
-        self.landing_start  = 0.75
-        self.landing_end    = 1.0
+        self.push_off_end   = 0.1
+        self.flight_start   = 0.1
+        self.flight_end     = 0.6
+        self.landing_start  = 0.6
+        self.landing_end    = 1.
 
         # Store initial foot positions for reference
         self.base_feet_pos_body = {
