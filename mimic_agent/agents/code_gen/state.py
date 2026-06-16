@@ -12,3 +12,4 @@ class AgentState(TypedDict):
     num_critic_iters: int
     rewrite_mode: str
     skill_desc: Dict[str, Any]
+    token_usage: Dict[str, Any]

@@ -6,18 +6,18 @@ from prompts.build_json_prompts import load_yaml_config, load_prompt
 
 from langgraph.graph import StateGraph, START, END
 from agents.base_agent import BaseAgent
-from agents.code_gen_v2.state import AgentState
+from agents.code_gen.state import AgentState
 from langchain_core.messages import AIMessage
 
-from agents.code_gen_v2.coder_agent import make_coder_node
-from agents.code_gen_v2.motion_planner_agent import make_motion_plan_node
-from agents.code_gen_v2.code_executer_agent import make_code_executer_node
-from agents.code_gen_v2.critic_coder_agent import make_critic_coder_node
-from agents.code_gen_v2.critic_router import make_critic_router
-from agents.code_gen_v2.run_unit_test import make_unit_test_node
-from agents.code_gen_v2.should_continue import should_continue
-from agents.code_gen_v2.skill_filter import make_skill_filter_node
-from agents.code_gen_v2.motion_diagnosis_agent import make_motion_diagnosis_agent_node
+from agents.code_gen.coder_agent import make_coder_node
+from agents.code_gen.motion_planner_agent import make_motion_plan_node
+from agents.code_gen.code_executer_agent import make_code_executer_node
+from agents.code_gen.critic_coder_agent import make_critic_coder_node
+from agents.code_gen.critic_router import make_critic_router
+from agents.code_gen.run_unit_test import make_unit_test_node
+from agents.code_gen.should_continue import should_continue
+from agents.code_gen.skill_filter import make_skill_filter_node
+from agents.code_gen.motion_diagnosis_agent import make_motion_diagnosis_agent_node
 from agents.skill_gen.skill_formatter import prepare_skill
 
 from llm.load_claude import load_llm

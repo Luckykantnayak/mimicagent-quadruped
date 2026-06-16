@@ -1,6 +1,6 @@
 from agents.base_agent import BaseAgent
 from langchain_core.messages import SystemMessage, HumanMessage, get_buffer_string
-from agents.code_gen_v2.state import AgentState
+from agents.code_gen.state import AgentState
 
 from utils.tools import extract_json_from_message
 
