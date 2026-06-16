@@ -1,0 +1,32 @@
+run:
+  mode: "walking"
+  robot: "unitree_go2w"      # must match a file in robots_dir
+  robots_dir: "robots"       # NEW: directory containing per-robot YAMLs
+  init_position: "home"
+  sim_freq: 200
+  plot: false
+  record: false
+  record_cycles: 2
+  version: "2025-12-28_12-44-48"
+
+motion:
+  vx: 1.0
+  vy: 0.0
+  vz: 0.0
+  roll_rate: 0.0
+  pitch_rate: 0.0
+  yaw_rate: 1.0
+
+gait:
+  freq: 1.5
+  params:
+    step_length: 0.4
+    step_height: 0.15
+    duty_ratio: 0.75
+
+skating:
+  style: "back_alt"
+  push_ratio: 0.2
+  recovery_ratio: 0.2
+  glide_ratio: 0.6
+

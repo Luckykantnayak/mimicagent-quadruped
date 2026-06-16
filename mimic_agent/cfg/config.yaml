@@ -1,0 +1,29 @@
+dataset:
+  total_skills: 100
+  skills_per_generation: 20
+
+llm:
+  model: claude-sonnet-4-5-20250929
+  temperature: 1.0
+  max_tokens: 16000
+
+robot:
+  name: go2w
+  urdf: ../assets/unitree_go2w/go2w.xml
+
+paths:
+  prompts_dir: prompts
+  data_output_dir: ../data
+  skill_output_dir: ../../data/skills
+  motion_planner_output_dir: ../data/motion_plans
+  results_dir: ../data/results
+  metadata_dir: ../data/metadata
+  gait_dir: ../gaits
+  simulator_dir: ..
+  trajectory_dir: ../data
+
+simulator:
+  python_bin: python
+
+critic:
+  max_iters: 5

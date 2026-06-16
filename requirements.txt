@@ -1,0 +1,21 @@
+# Agent (LLM orchestration)
+langgraph
+langchain-core
+langchain-anthropic
+langchain-openai
+
+# Simulator (MuJoCo kinematic motion generation)
+mujoco
+glfw
+scipy
+
+# Shared
+numpy
+PyYAML
+
+# Skill analysis (optional)
+scikit-learn
+matplotlib
+
+# Interactive demo UI (optional)
+streamlit
