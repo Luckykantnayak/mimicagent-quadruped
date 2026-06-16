@@ -14,7 +14,7 @@ robot:
 paths:
   prompts_dir: prompts
   data_output_dir: ../data
-  skill_output_dir: ../../data/skills
+  skill_output_dir: ../data/skills
   motion_planner_output_dir: ../data/motion_plans
   results_dir: ../data/results
   metadata_dir: ../data/metadata

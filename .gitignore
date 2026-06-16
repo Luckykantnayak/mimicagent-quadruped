@@ -3,8 +3,11 @@ __pycache__/
 *.py[codz]
 *$py.class
 
-# Custom Ignores
-data
+# Custom Ignores — ignore generated data, but keep the bundled input skill library
+/data/*
+!/data/skills/
+/data/skills/*
+!/data/skills/skills_v1/
 
 
 # C extensions

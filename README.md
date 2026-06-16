@@ -9,12 +9,12 @@ simulator it drives (repo root).
 ## Layout
 
 ```
-code/
+.
 ├── mimic_agent/   # the LLM agent (skill -> code -> trajectory, with critic loop)
 ├── gaits/         # LLM-generated skill code (the agent's output)
+├── data/skills/   # bundled input skill library (all_skills.json)
 ├── core/ assets/ robots/ config/   # the MuJoCo simulator
 └── run.py         # simulator entry point
-data/              # skill library (all_skills.json); unzip data.zip here, sibling to code/
 ```
 
 ## Setup
@@ -25,8 +25,6 @@ Requires Python 3.10+.
 pip install -r requirements.txt
 export ANTHROPIC_API_KEY="..."
 ```
-
-Unzip `data.zip` next to this folder so that `code/` and `data/` are siblings.
 
 Robot models are not included. Place the Unitree Go2 / Go2-W MuJoCo models under
 `assets/` (e.g. from MuJoCo Menagerie) to run the simulator.
