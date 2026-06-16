@@ -1,9 +1,25 @@
 import json
+import os
 import re
+from datetime import datetime
+
+from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, get_buffer_string
+from langgraph.graph.message import add_messages
+from typing import Annotated, Sequence
+from typing_extensions import TypedDict, Dict, List
 
 from agents.base_agent import BaseAgent
-from langchain_core.messages import SystemMessage, HumanMessage, get_buffer_string
-from agents.skill_gen.state import AgentState
+from utils.tools import extract_json_from_message
+
+
+class AgentState(TypedDict):
+    messages: Annotated[Sequence[BaseMessage], add_messages]
+    skills: List[Dict[str, str]]
+
+
+# ----------------------------------------------------
+# SKILL GENERATOR
+# ----------------------------------------------------
 
 def make_skill_gen_node(skill_agent: BaseAgent, data, cfg):
     """
@@ -78,3 +94,57 @@ def clean_json_text(text: str) -> str:
     text = re.sub(r"\s*```$", "", text)
     return text.strip()
 
+
+# ----------------------------------------------------
+# SAVE
+# ----------------------------------------------------
+
+def make_save_agent_node(cfg):
+    # Create run directory ONCE
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    base_dir = cfg["paths"]["skill_output_dir"]
+    run_dir = os.path.join(base_dir, timestamp)
+    os.makedirs(run_dir, exist_ok=True)
+
+    def save_agent(state: AgentState):
+        save(state, run_dir)
+        return state
+
+    return save_agent
+
+
+def save(state: AgentState, run_dir):
+    raw_text = get_buffer_string([state['messages'][-1]])
+
+    # Extract clean JSON object
+    json_data = extract_json_from_message(raw_text)
+
+    # Find existing SKILL_*.json files
+    existing = os.listdir(run_dir)
+    nums = []
+
+    for fname in existing:
+        match = re.match(r"SKILL_(\d+)\.json", fname)
+        if match:
+            nums.append(int(match.group(1)))
+
+    next_num = max(nums) + 1 if nums else 1
+
+    file_path = os.path.join(run_dir, f"SKILL_{next_num:04d}.json")
+    with open(file_path, "w") as f:
+        json.dump(json_data, f, indent=2)
+
+
+# ----------------------------------------------------
+# ROUTER
+# ----------------------------------------------------
+
+def build_skill_router_node(cfg):
+    def skill_router(state: AgentState) -> str:
+        max_iter = cfg["dataset"]["total_skills"]
+        if len(state["skills"]) <= max_iter:
+            return "continue"
+
+        return "end"
+
+    return skill_router
