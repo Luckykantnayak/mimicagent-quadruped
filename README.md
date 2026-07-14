@@ -1,20 +1,30 @@
-# MimicAgent: Learning Quadruped Skills via Text-to-Trajectory Generation
+# MimicAgent: Learning Robot Skills via Text-to-Trajectory Generation
 
 Given a natural-language skill description, an LLM agent writes the code that
 generates a motion prior for that skill, executes it in a MuJoCo simulator,
 checks the resulting trajectory, and iteratively repairs its own code until the
-motion passes. The repository contains the agent (`mimic_agent/`) and the
-simulator it drives (repo root).
+motion passes. The system is morphology-agnostic — one per-robot spec drives
+both the simulator and the agent's prompts.
+
+**Full architecture, pipeline, adding-a-robot guide, and skill-generation
+examples: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).**
 
 ## Layout
 
 ```
 .
-├── mimic_agent/   # the LLM agent (skill -> code -> trajectory, with critic loop)
-├── gaits/         # LLM-generated skill code (the agent's output)
-├── data/skills/   # bundled input skill library (all_skills.json)
-├── core/ assets/ robots/ config/   # the MuJoCo simulator
-└── run.py         # simulator entry point
+├── robots/            # one self-contained dir per robot
+│   └── <name>/
+│       ├── robot.yaml   # spec: end-effectors, joints+limits, camera, robot card
+│       ├── example.py   # reference skill (the default demo)
+│       └── assets/      # MuJoCo model (scene.xml + model + meshes)
+├── simulator/         # the MuJoCo kinematic simulator
+│   ├── run.py           # entry point
+│   ├── config.yaml
+│   ├── core/  motion/  utils/
+├── agent/             # the LLM skill-writer (skill -> code -> trajectory, critic loop)
+├── skill_output/      # generated skills + artifacts, per robot (gitignored)
+└── archive/           # old skills + the input skill library
 ```
 
 ## Setup
@@ -26,41 +36,39 @@ pip install -r requirements.txt
 export ANTHROPIC_API_KEY="..."
 ```
 
-Robot models are not included. Place the Unitree Go2 / Go2-W MuJoCo models under
-`assets/` (e.g. from MuJoCo Menagerie) to run the simulator.
+MuJoCo models (MimicKit-style) for the Unitree Go2, Go2-W, and a 28-DoF
+humanoid are bundled under `robots/<name>/assets/`.
 
-The LLM model (`llm.model`) and target robot (`robot.name`, `robot.urdf`) are set
-in `mimic_agent/cfg/config.yaml`. Prompts are per-robot under
-`mimic_agent/prompts/<robot>/`, and the `{robot}` / `{urdf}` fields are filled in
-automatically at load time.
+The LLM model (`llm.model`) and target robot (`robot.name`) are set in
+`agent/cfg/config.yaml`. Each robot is described by a single spec file
+`robots/<name>/robot.yaml` (end-effectors, joints + limits, base-height
+envelope, camera, and a free-text "robot card"). A shared prompt template set
+in `agent/prompts/templates/` is filled from that spec at load time, so adding
+a robot needs no prompt or code changes — just a new `robots/<name>/` directory
+(spec + `example.py` + `assets/`). Generated skills are saved under
+`skill_output/<robot>/<skill>/`.
 
 ## Usage
 
-Synthesise motion priors for the whole skill library:
+Run everything **from the repo root**.
+
+Play a robot's reference skill in the simulator:
 
 ```bash
-cd mimic_agent
-python run.py
+python simulator/run.py --robot unitree_go2 --record True
 ```
 
-Or run a single skill straight from a natural-language description:
+Generate a single skill from a natural-language description:
 
 ```bash
-cd mimic_agent
+cd agent
 python run.py --skill "The robot trots forward at a steady pace" --name SKILL_TROT
 ```
 
-Generate a new skill library (optional):
+Play an agent-generated skill:
 
 ```bash
-cd mimic_agent
-python run_skill_gen.py
-```
-
-Run the simulator on a single skill directly (optional):
-
-```bash
-python run.py --mode <skill_name> --record True --version <skill_version>
+python simulator/run.py --robot unitree_go2 --mode SKILL_TROT --record True
 ```
 
 ### Interactive demo (Streamlit)
@@ -68,7 +76,7 @@ python run.py --mode <skill_name> --record True --version <skill_version>
 Type a skill in the browser and watch each agent's output and status stream live:
 
 ```bash
-cd mimic_agent
+cd agent
 streamlit run app.py
 ```
 

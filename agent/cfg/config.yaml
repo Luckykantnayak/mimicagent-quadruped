@@ -1,0 +1,24 @@
+dataset:
+  total_skills: 100
+  skills_per_generation: 20
+
+llm:
+  model: claude-sonnet-4-5-20250929
+  temperature: 1.0
+  max_tokens: 16000
+
+robot:
+  name: unitree_go2w         # must match a robots/<name>/ directory
+
+paths:
+  prompts_dir: prompts
+  robots_dir: ../robots
+  simulator_dir: ..                       # repo root (where simulator/run.py is invoked)
+  skill_output_dir: ../skill_output       # generated per-robot: <robot>/<skill>/
+  skill_library: ../archive/skill_library # input library for batch mode (archived)
+
+simulator:
+  python_bin: python
+
+critic:
+  max_iters: 5

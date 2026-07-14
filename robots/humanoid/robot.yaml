@@ -1,0 +1,69 @@
+# robots/humanoid/robot.yaml
+# 28-DoF humanoid (two-footed biped; arms/torso/neck not IK-driven)
+# Model: MimicKit humanoid.xml (limits transcribed from the MJCF)
+
+name: humanoid
+scene_xml: robots/humanoid/assets/scene.xml
+mjcf: robots/humanoid/assets/humanoid.xml
+base_body: pelvis
+sim_freq: 200
+
+# Ordered end-effectors. Only the two feet are IK targets.
+# ground_offset = distance from foot body origin to the sole.
+end_effectors:
+  - {name: right_foot, body: right_foot, ground_offset: 0.05}
+  - {name: left_foot,  body: left_foot,  ground_offset: 0.05}
+
+# In model qpos[7:] order (what gets recorded).
+joints:
+  - {name: abdomen_x,        limits: [-1.0472, 1.0472]}
+  - {name: abdomen_y,        limits: [-1.0472, 1.5708]}
+  - {name: abdomen_z,        limits: [-1.2217, 1.2217]}
+  - {name: neck_x,           limits: [-0.8727, 0.8727]}
+  - {name: neck_y,           limits: [-0.6981, 1.0472]}
+  - {name: neck_z,           limits: [-0.7854, 0.7854]}
+  - {name: right_shoulder_x, limits: [-1.9199, 2.4435]}
+  - {name: right_shoulder_y, limits: [-1.5708, 1.5708]}
+  - {name: right_shoulder_z, limits: [-1.0472, 2.7925]}
+  - {name: right_elbow,      limits: [0.0, 2.7925]}
+  - {name: left_shoulder_x,  limits: [-2.4435, 1.9199]}
+  - {name: left_shoulder_y,  limits: [-1.5708, 1.5708]}
+  - {name: left_shoulder_z,  limits: [-2.7925, 1.0472]}
+  - {name: left_elbow,       limits: [-2.7925, 0.0]}
+  - {name: right_hip_x,      limits: [-1.0472, 0.5236]}
+  - {name: right_hip_y,      limits: [-2.4435, 1.0472]}
+  - {name: right_hip_z,      limits: [-1.0472, 1.0472]}
+  - {name: right_knee,       limits: [0.0, 2.7925]}
+  - {name: right_ankle_x,    limits: [-0.5236, 0.5236]}
+  - {name: right_ankle_y,    limits: [-0.9599, 0.9599]}
+  - {name: right_ankle_z,    limits: [-0.6981, 0.6981]}
+  - {name: left_hip_x,       limits: [-0.5236, 1.0472]}
+  - {name: left_hip_y,       limits: [-2.4435, 1.0472]}
+  - {name: left_hip_z,       limits: [-1.0472, 1.0472]}
+  - {name: left_knee,        limits: [0.0, 2.7925]}
+  - {name: left_ankle_x,     limits: [-0.5236, 0.5236]}
+  - {name: left_ankle_y,     limits: [-0.9599, 0.9599]}
+  - {name: left_ankle_z,     limits: [-0.6981, 0.6981]}
+
+base_height_range: [0.35, 1.60]
+
+camera: {lookat: [0.0, 0.0, 0.9], distance: 4.0, azimuth: 90, elevation: -15}
+
+example_skill: robots/humanoid/example.py
+robot_card: |
+  The robot is a 28-DoF humanoid biped. The end-effectors are the two feet,
+  named right_foot and left_foot — these are the ONLY inverse-kinematics
+  targets. The pelvis stands at about 0.88 m; step length is around 0.2-0.4 m.
+  All motion is purely kinematic.
+
+  Arms, torso, and neck are NOT driven by IK. To move them, a skill must set
+  explicit joint angles per step by overriding compute_joint_overrides(phase)
+  to return {joint_name: angle_radians}. If a joint is never overridden, the
+  IK null-space keeps it near the standing pose. Use joint overrides for any
+  skill that needs arm swings, torso lean/twist, waving, or head motion.
+
+  Typical coordination: alternating single support (walk/run: one foot in
+  stance while the other swings), double support (squats, jumps, leans),
+  hops (both feet leave the ground together). Keep the pelvis inside the
+  support region during slow motions; swing feet must lift clear of the
+  ground and land ahead of the hip in walking gaits.

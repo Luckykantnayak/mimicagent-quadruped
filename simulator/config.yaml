@@ -1,0 +1,15 @@
+run:
+  mode: "example"            # "example" plays robots/<robot>/example.py;
+                             # any other name loads skill_output/<robot>/<mode>/
+  robot: "unitree_go2w"      # must match a robots/<robot>/ directory
+  robots_dir: "robots"       # directory holding per-robot dirs (each with robot.yaml)
+  init_position: "home"
+  sim_freq: 200
+  plot: false
+  record: false
+  record_cycles: 2
+
+# Each skill owns its own base motion (velocity / yaw) inside
+# update_base_motion; the simulator does not command the robot.
+gait:
+  freq: 1.5                  # recording length = record_cycles / freq * sim_freq
