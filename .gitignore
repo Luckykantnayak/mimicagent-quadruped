@@ -220,3 +220,6 @@ graph_coder.png
 graph_skill_gen.png
 MUJOCO_LOG.TXT
 .DS_Store
+
+# Agent instructions (local only)
+CLAUDE.md
