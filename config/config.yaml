@@ -1,11 +1,13 @@
 run:
-  mode: "skating"          # walking | skating | pronk | backflip | static
-  robot: "go2w"
-  init_position: "home"   # home | handstand
+  mode: "walking"
+  robot: "unitree_go2w"      # must match a file in robots_dir
+  robots_dir: "robots"       # NEW: directory containing per-robot YAMLs
+  init_position: "home"
   sim_freq: 200
   plot: false
-  record: False
+  record: false
   record_cycles: 2
+  version: "2025-12-28_12-44-48"
 
 motion:
   vx: 1.0
@@ -17,14 +19,14 @@ motion:
 
 gait:
   freq: 1.5
-
   params:
     step_length: 0.4
     step_height: 0.15
     duty_ratio: 0.75
 
-skating:            # Skill-specific block
+skating:
   style: "back_alt"
   push_ratio: 0.2
   recovery_ratio: 0.2
   glide_ratio: 0.6
+

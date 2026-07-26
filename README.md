@@ -1,104 +1,80 @@
-# Go2 Kinematic Gait & Skating Motion Generator (MuJoCo + MimicKit)
+# MimicAgent: Learning Quadruped Skills via Text-to-Trajectory Generation
 
-#### This repository provides a **kinematic Walking and Skating gait motion generator**  for the **Unitree Go2 and Go2W** robot using **MuJoCo**, **inverse kinematics**, and **procedural gait controllers**. The generated animated motions are exported in **MimicKit-compatible format** (`.pkl`) for downstream reinforcement learning using DeepMimic and other methods for getting a policy that generate similar but dynamically feasible motion.
----
+Given a natural-language skill description, an LLM agent writes the code that
+generates a motion prior for that skill, executes it in a MuJoCo simulator,
+checks the resulting trajectory, and iteratively repairs its own code until the
+motion passes. The repository contains the agent (`mimic_agent/`) and the
+simulator it drives (repo root).
 
-## Features
+## Layout
 
-- Walking, skating, and static motion modes  
-- Multiple skating styles (front/back/side/diagonal/two-leg)  
-- Real-time MuJoCo visualization  
-- Optional live foot trajectory plotting  
-- YAML-based configuration with CLI overrides  
-- Exports loopable MimicKit motion files  
-- Pure kinematic IK (no physics simulation)
+```
+.
+├── mimic_agent/   # the LLM agent (skill -> code -> trajectory, with critic loop)
+├── gaits/         # LLM-generated skill code (the agent's output)
+├── data/skills/   # bundled input skill library (all_skills.json)
+├── core/ assets/ robots/ config/   # the MuJoCo simulator
+└── run.py         # simulator entry point
+```
 
----
+## Setup
 
-### 1. Create environment
+Requires Python 3.10+.
+
 ```bash
-conda create -n mujoco python=3.10
-conda activate mujoco 
-
-conda install -c conda-forge mujoco glfw pyyaml numpy matplotlib
-pip install pickle5
-```
-### 2. Running the scipt
-
-Running the Script
-
-From the scripts/ directory:
-
-```
-cd scripts
+pip install -r requirements.txt
+export ANTHROPIC_API_KEY="..."
 ```
 
-Run with default configuration:
+Robot models are not included. Place the Unitree Go2 / Go2-W MuJoCo models under
+`assets/` (e.g. from MuJoCo Menagerie) to run the simulator.
 
-```
-python sim_go2_mimickit.py
-```
+The LLM model (`llm.model`) and target robot (`robot.name`, `robot.urdf`) are set
+in `mimic_agent/cfg/config.yaml`. Prompts are per-robot under
+`mimic_agent/prompts/<robot>/`, and the `{robot}` / `{urdf}` fields are filled in
+automatically at load time.
 
-### 3. Supported Modes
-#### Walking
+## Usage
 
-Standard quadruped walking gait.
+Synthesise motion priors for the whole skill library:
 
-```
-python sim_go2_mimickit.py --mode walking
-```
-
-#### Skating
-
-Passive-wheel skating with selectable styles.
-```
-python sim_go2_mimickit.py --mode skating --skating_style back_alt
-```
-#### Static
-
-Feet remain fixed (debug/visualization).
-```
-python sim_go2_mimickit.py --mode static
-```
-### 4. Additional args 
-Live Plotting
-
-Enable live plotting of foot trajectories:
-```
---plot true
+```bash
+cd mimic_agent
+python run.py
 ```
 
-Plots:
+Or run a single skill straight from a natural-language description:
 
-Foot Z-height
-
-Foot X-position
-
-Recording MimicKit Motions
-
-#### Enable recording:
-```
---record true --record_cycles 4
+```bash
+cd mimic_agent
+python run.py --skill "The robot trots forward at a steady pace" --name SKILL_TROT
 ```
 
-#### Saved output:
-```
-data/go2_<skating_style>_<mode>_gait_mimickit.pkl
-```
-### 4. Output Format (MimicKit)
+Generate a new skill library (optional):
 
-Each frame contains:
-```
-[root_position (3),
- root_expmap (3),
- joint_angles (...)]
+```bash
+cd mimic_agent
+python run_skill_gen.py
 ```
 
-Saved as:
+Run the simulator on a single skill directly (optional):
+
+```bash
+python run.py --mode <skill_name> --record True --version <skill_version>
 ```
-{
-  "fps": 200,
-  "loop_mode": 1,
-  "frames": np.ndarray [T, D]
-}
+
+### Interactive demo (Streamlit)
+
+Type a skill in the browser and watch each agent's output and status stream live:
+
+```bash
+cd mimic_agent
+streamlit run app.py
 ```
+
+Enter your Anthropic API key and pick the robot in the sidebar, then describe a
+skill and hit **Run**.
+
+## License
+
+See `LICENSE`.

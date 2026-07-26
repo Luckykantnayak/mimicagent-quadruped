@@ -3,10 +3,12 @@ __pycache__/
 *.py[codz]
 *$py.class
 
-# Custom Ignores
-data
+# Custom Ignores — ignore generated data, but keep the bundled input skill library
+/data/*
+!/data/skills/
+/data/skills/*
+!/data/skills/skills_v1/
 extras
-
 
 
 # C extensions
@@ -211,3 +213,14 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Combined codebase: generated artifacts
+mimic_agent/data/
+*.pkl
+graph_coder.png
+graph_skill_gen.png
+MUJOCO_LOG.TXT
+.DS_Store
+
+# Agent instructions (local only)
+CLAUDE.md

@@ -1,0 +1,702 @@
+[
+    {
+        "skill_id": "SKILL_ORBIT_TILT_ROLL",
+        "skill_name": "Orbit Tilt Roll",
+        "skill_intent": "Circular locomotion with continuous roll oscillation synchronized to orbital position.",
+        "skill_description": "The robot travels in a circular path while the base executes rhythmic roll tilts that peak when the robot faces cardinal directions of the orbit. Phase 0\u20130.25: base rolls left as robot curves through first quadrant. Phase 0.25\u20130.5: base returns to neutral then rolls right through second quadrant. Phase 0.5\u20130.75: base rolls left through third quadrant. Phase 0.75\u20131: base returns neutral and completes the circle. Limbs modulate extension to support the rolling motion, with outer legs extending more than inner legs.",
+        "think": "This skill couples orbital path geometry with transverse roll oscillations, creating a complex coordination challenge. The phase variable controls both the circular trajectory and the roll amplitude envelope. Limbs act as adaptive supports that maintain ground contact during dynamic roll changes. This is non-trivial because it requires simultaneous control of heading, curvature, and lateral tilt, valuable for learning policies that can decouple and recombine rotational degrees of freedom."
+    },
+    {
+        "skill_id": "SKILL_DIAGONAL_PITCH_WAVE",
+        "skill_name": "Diagonal Pitch Wave",
+        "skill_intent": "Diagonal locomotion driven by pitch waves propagating along the diagonal body axis.",
+        "skill_description": "The robot moves diagonally forward-right while a pitch oscillation wave travels from rear-left to front-right. Phase 0\u20130.3: rear lifts as RL and RR push, initiating diagonal motion. Phase 0.3\u20130.6: pitch wave reaches center, all legs briefly level. Phase 0.6\u20131: front lifts as FL and FR pull forward, completing the diagonal stride. The pitch axis itself rotates to align with the diagonal travel direction, creating a unique non-sagittal rocking motion.",
+        "think": "This skill explores non-canonical pitch dynamics where the rocking axis is not aligned with the body's sagittal plane. It requires coordinating pitch rotation, yaw adjustment, and diagonal translation simultaneously. The wave propagation creates continuously varying limb roles. Valuable for imitation learning because it breaks the assumption that pitch is always front-to-back, enabling more flexible terrain adaptation strategies."
+    },
+    {
+        "skill_id": "SKILL_REVERSE_HELICOPTER_DESCENT",
+        "skill_name": "Reverse Helicopter Descent",
+        "skill_intent": "Backward motion with counter-clockwise yaw rotation and descending base height.",
+        "skill_description": "The robot travels backward while executing a continuous counter-clockwise yaw spin and gradually lowering its base height. Legs extend outward in a rotating cross pattern, cycling through extended and retracted positions as they rotate through the spin. Phase 0\u20130.33: legs rotate 120 degrees, base lowers slightly. Phase 0.33\u20130.67: another 120 degrees rotation, further descent. Phase 0.67\u20131: final 120 degrees completing full rotation and reaching lowest height. The backward translation emerges from coordinated leg sliding during the spin.",
+        "think": "This skill combines three simultaneous transformations: backward translation, yaw rotation, and vertical descent. The helicopter-like leg pattern provides continuous ground contact while allowing the spin. Unlike the forward helicopter ascend, this reverses all motion directions, creating a distinct coordination pattern. Useful for learning policies that can coordinate opposing motion primitives and manage height modulation during complex maneuvers."
+    },
+    {
+        "skill_id": "SKILL_LATERAL_TUCK_ROLL",
+        "skill_name": "Lateral Tuck Roll",
+        "skill_intent": "Pure sideways rolling motion with legs tucked close to body.",
+        "skill_description": "The robot rolls continuously to the left while translating leftward, with all legs tucked inward to minimize rotation radius. Phase 0\u20130.25: right side lifts, initiating roll. Phase 0.25\u20130.5: inverted position, all legs fully tucked. Phase 0.5\u20130.75: left side lifts, continuing roll. Phase 0.75\u20131: return to upright, legs extend slightly to prepare for next cycle. The tucked configuration allows rapid rotation while lateral translation is maintained through coordinated roll timing.",
+        "think": "This skill explores pure lateral barrel rolling with minimal limb extension, contrasting with extended rolling motions. The tucked posture creates a compact rolling body, testing the policy's ability to manage reduced ground contact and rapid orientation changes. Phase controls both roll angle and tuck degree. Valuable for learning compact emergency maneuvers and understanding how limb configuration affects rotational dynamics."
+    },
+    {
+        "skill_id": "SKILL_SERPENTINE_BACKWARD_DRIFT",
+        "skill_name": "Serpentine Backward Drift",
+        "skill_intent": "Backward locomotion with S-curve body undulation and lateral drift.",
+        "skill_description": "The robot moves backward while the body traces continuous S-curves in the horizontal plane, creating a serpentine path. Phase 0\u20130.25: body curves right, left legs extend to drift left while moving back. Phase 0.25\u20130.5: body straightens briefly. Phase 0.5\u20130.75: body curves left, right legs extend to drift right while moving back. Phase 0.75\u20131: body straightens and resets. The net motion is backward with oscillating lateral drift, creating a winding trail.",
+        "think": "This skill decouples backward progression from straight-line motion, adding lateral oscillation through body curvature. The serpentine pattern requires coordinated yaw modulation and asymmetric leg extension. Unlike simple reverse moonwalk, this adds lateral complexity and body-wave coordination. Useful for learning non-linear backward trajectories and understanding how body curvature can be used for simultaneous translation and drift control."
+    },
+    {
+        "skill_id": "SKILL_TRIPOD_ROTATION_WALK",
+        "skill_name": "Tripod Rotation Walk",
+        "skill_intent": "Forward locomotion using alternating tripod stances with continuous yaw rotation.",
+        "skill_description": "The robot walks forward while executing a slow continuous clockwise yaw rotation. Phase 0\u20130.5: FL, RR, and body center form tripod support while FR and RL swing forward and around. Phase 0.5\u20131: FR, RL, and center form tripod while FL and RR swing forward and around. The diagonal tripod pattern allows stable rotation during forward progression, with each swing leg tracing a curved arc that combines forward motion with rotational adjustment.",
+        "think": "This skill combines tripodal gait structure with continuous yaw rotation, creating a spiraling forward path. The tripod support provides stability during non-standard leg coordination. Unlike simple corkscrew drift, this uses discrete stance switching rather than continuous sliding. Valuable for learning hybrid discrete-continuous motion patterns and understanding how gait structure can support complex trajectories."
+    },
+    {
+        "skill_id": "SKILL_SIDE_FLIP_TRANSLATION",
+        "skill_name": "Side Flip Translation",
+        "skill_intent": "Lateral motion combined with aerial side flip rotation.",
+        "skill_description": "The robot pushes off to the right while initiating a lateral roll flip. Phase 0\u20130.2: all legs push right, body begins leftward roll. Phase 0.2\u20130.5: aerial phase, body completes 180-degree roll while translating right. Phase 0.5\u20130.7: body completes full 360-degree roll. Phase 0.7\u20131: legs extend for landing, absorbing impact and stabilizing. The flip axis is parallel to the direction of travel, creating a cartwheel-like motion but with continuous lateral translation rather than discrete hand-foot contacts.",
+        "think": "This skill explores aerial acrobatics with lateral translation, distinct from forward flips or barrel rolls. The roll axis aligns with travel direction, requiring precise timing of takeoff and landing to maintain momentum. Unlike cartwheel side travel which uses discrete contacts, this is a fluid aerial rotation. Valuable for learning coordinated aerial maneuvers and understanding how orientation changes can be coupled with translation without ground contact."
+    },
+    {
+        "skill_id": "SKILL_ELLIPTICAL_LEAN_LOOP",
+        "skill_name": "Elliptical Lean Loop",
+        "skill_intent": "Locomotion following an elliptical path with lean angle modulated by position on ellipse.",
+        "skill_description": "The robot travels in an elliptical path where the lean angle varies with position: maximum inward lean at the narrow ends, minimum at the wide sides. Phase 0\u20130.25: traveling along narrow end with maximum right lean. Phase 0.25\u20130.5: transitioning to wide side, lean decreases. Phase 0.5\u20130.75: traveling along opposite narrow end with maximum left lean. Phase 0.75\u20131: returning through wide side, lean decreases. Limbs adjust continuously to support varying lean and curvature.",
+        "think": "This skill explores non-circular curved paths where both curvature and lean angle vary continuously. The elliptical geometry creates natural acceleration and deceleration zones, requiring adaptive limb coordination. Unlike simple circular orbits, the varying curvature tests the policy's ability to modulate lean dynamically. Valuable for learning complex curved trajectories and understanding the relationship between path geometry and body orientation."
+    },
+    {
+        "skill_id": "SKILL_ASYMMETRIC_GALLOP_BOUND",
+        "skill_name": "Asymmetric Gallop Bound",
+        "skill_intent": "Forward bounding with intentionally asymmetric left-right leg timing creating curved path.",
+        "skill_description": "The robot bounds forward with front and rear leg pairs, but left legs consistently lead right legs by a phase offset, causing the trajectory to curve rightward. Phase 0\u20130.3: FL and RL push off and lift. Phase 0.15\u20130.45: FR and RR push off (delayed). Phase 0.45\u20130.65: FL and RL land. Phase 0.6\u20130.8: FR and RR land (delayed). Phase 0.8\u20131: compression and preparation for next bound. The asymmetric timing creates unequal impulse distribution, naturally curving the path.",
+        "think": "This skill deliberately breaks left-right symmetry in a bounding gait to achieve curved trajectories without explicit steering. The phase offset between sides creates a continuously curving path rather than a straight bound. Valuable for learning how temporal asymmetry can generate spatial curvature, and for understanding how symmetric morphology can produce asymmetric motion through timing alone."
+    },
+    {
+        "skill_id": "SKILL_WOBBLE_PLATE_SPIN",
+        "skill_name": "Wobble Plate Spin",
+        "skill_intent": "In-place yaw rotation with superimposed wobbling through coupled pitch and roll oscillations.",
+        "skill_description": "The robot spins in place with continuous yaw rotation while the base executes a wobbling motion through synchronized pitch and roll oscillations. Phase 0\u20130.25: pitch forward while rolling right, yaw 90 degrees. Phase 0.25\u20130.5: pitch back while rolling left, yaw another 90 degrees. Phase 0.5\u20130.75: pitch forward while rolling left, yaw another 90 degrees. Phase 0.75\u20131: pitch back while rolling right, completing 360-degree yaw. Legs adjust continuously to maintain ground contact during the complex wobble.",
+        "think": "This skill combines three rotational degrees of freedom simultaneously: yaw progression with pitch-roll wobbling. The wobble creates a precession-like motion where the base orientation traces a complex path on the orientation manifold. Unlike simple tornado spin, this adds pitch-roll coupling. Valuable for learning full 3D orientation control and understanding how multiple rotational oscillations can be superimposed."
+    },
+    {
+        "skill_id": "SKILL_ACCORDION_LATERAL_SHIFT",
+        "skill_name": "Accordion Lateral Shift",
+        "skill_intent": "Sideways locomotion through rhythmic body compression and extension along the lateral axis.",
+        "skill_description": "The robot moves sideways by alternately compressing and extending its width. Phase 0\u20130.3: body compresses laterally, all legs tuck inward. Phase 0.3\u20130.5: while compressed, the robot slides left. Phase 0.5\u20130.8: body extends laterally, legs spread outward. Phase 0.8\u20131: legs anchor and prepare for next compression. The compression-slide-extension cycle produces sideways locomotion similar to an accordion being squeezed and pulled.",
+        "think": "This skill explores lateral width modulation as a locomotion primitive, contrasting with length-based inchworm motion. The compression creates a narrow profile for sliding, while extension provides anchoring. Phase controls the compression ratio and translation timing. Valuable for learning how body shape changes can facilitate motion through constrained spaces and understanding compliance-like behavior in purely kinematic contexts."
+    },
+    {
+        "skill_id": "SKILL_REVERSE_CRAB_CURVE",
+        "skill_name": "Reverse Crab Curve",
+        "skill_intent": "Backward curved locomotion with body oriented perpendicular to travel path.",
+        "skill_description": "The robot travels backward along a curved path while maintaining body orientation perpendicular to the instantaneous travel direction, like a crab moving in reverse along a curve. Phase 0\u20130.33: body faces right, moves backward-left, curving. Phase 0.33\u20130.67: body rotates to face more rearward while continuing curved backward motion. Phase 0.67\u20131: body faces left, completes curved backward trajectory. Legs on the outer edge of the curve extend more than inner legs to maintain the curve radius.",
+        "think": "This skill combines three challenging elements: backward motion, curved trajectory, and non-aligned body orientation. Unlike forward crab scuttle or simple backward motion, this requires coordinating heading control with curved reverse travel. The perpendicular body orientation creates unique limb coordination requirements. Valuable for learning complex kinematic decoupling between body heading and travel direction in reverse motion."
+    },
+    {
+        "skill_id": "SKILL_PULSE_JUMP_FORWARD",
+        "skill_name": "Pulse Jump Forward",
+        "skill_intent": "Forward progression through rapid pulsed jumps with varying amplitude.",
+        "skill_description": "The robot advances forward through a series of quick jumps where amplitude varies sinusoidally across the phase cycle. Phase 0\u20130.2: small jump forward. Phase 0.2\u20130.4: medium jump forward. Phase 0.4\u20130.6: large jump forward (peak amplitude). Phase 0.6\u20130.8: medium jump forward. Phase 0.8\u20131: small jump forward, completing the envelope. All legs synchronize for each jump, but the extension magnitude varies to create the amplitude envelope.",
+        "think": "This skill explores rhythmic aerial locomotion with modulated jump intensity, creating a wave-like forward progression amplitude. Unlike constant pogo bouncing, the varying height creates acceleration-deceleration patterns. Phase controls both jump timing and amplitude envelope. Valuable for learning energy modulation strategies and understanding how jump intensity variation affects forward speed and trajectory smoothness."
+    },
+    {
+        "skill_id": "SKILL_PIVOT_DRAG_CIRCLE",
+        "skill_name": "Pivot Drag Circle",
+        "skill_intent": "Circular motion where one leg remains fixed as pivot while others drag around it.",
+        "skill_description": "The robot circles around a fixed pivot leg while the other three legs drag along the ground in coordinated arcs. Phase 0\u20130.33: RR acts as pivot, other legs drag 120 degrees around it. Phase 0.33\u20130.67: pivot switches to RL mid-motion, other legs continue dragging another 120 degrees. Phase 0.67\u20131: pivot switches to FR, completing 360-degree circle. The switching pivot creates a wobbling circular path rather than a perfect circle, with continuous ground contact from dragging legs.",
+        "think": "This skill explores anchored rotation with dynamic pivot switching, creating an irregular circular trajectory. Unlike compass sweep which uses leg pairs, this uses a single pivot with three dragging legs, creating asymmetric support. The pivot switching mid-cycle adds complexity to the coordination. Valuable for learning adaptive anchor-point strategies and understanding how single-point pivoting affects circular motion quality."
+    },
+    {
+        "skill_id": "SKILL_LATERAL_SINE_WALK",
+        "skill_name": "Lateral Sine Walk",
+        "skill_intent": "Sideways walking where leg lift heights follow a sinusoidal pattern creating wavelike visual.",
+        "skill_description": "The robot walks sideways to the right while leg lift heights vary sinusoidally based on phase. Phase 0\u20130.25: FL lifts high, FR low, RL medium, RR medium-low, all step right. Phase 0.25\u20130.5: FL drops, FR rises, RL drops, RR rises, continuing right steps. Phase 0.5\u20130.75: FL low, FR high, RL low, RR medium, stepping right. Phase 0.75\u20131: height pattern reverses, completing cycle. The varying lift heights create a visual wave propagating through the legs while all contribute to rightward motion.",
+        "think": "This skill decouples leg height modulation from the primary locomotion function, adding aesthetic variation to functional sideways walking. The sinusoidal height pattern creates visual complexity while maintaining lateral progression. Unlike pure locomotion skills, this explores how decorative motion layers can be added. Valuable for learning motion stylization and understanding how task-irrelevant degrees of freedom can be exploited for expressiveness."
+    },
+    {
+        "skill_id": "SKILL_SPLIT_AXIS_ROTATION",
+        "skill_name": "Split Axis Rotation",
+        "skill_intent": "In-place rotation where front and rear halves rotate in opposite yaw directions.",
+        "skill_description": "The robot performs an in-place twisting motion where the front half rotates clockwise while the rear half rotates counter-clockwise around a central pivot point at the body center. Phase 0\u20130.5: front rotates right 90 degrees, rear rotates left 90 degrees, creating maximum twist. Phase 0.5\u20131: both halves reverse direction, unwinding and twisting in the opposite direction. The central body region flexes to accommodate the opposing rotations. FL and FR coordinate for front rotation, RL and RR for rear rotation.",
+        "think": "This skill explores counter-rotation of body segments, creating a wringing or twisting motion. It requires significant virtual flexibility at the body center and challenges assumptions about rigid body motion. The opposing yaw directions create unique coordination requirements where front and rear leg pairs work independently. Valuable for learning segmented control strategies and understanding how multi-body flexibility can be exploited even in kinematic contexts."
+    },
+    {
+        "skill_id": "SKILL_DIAGONAL_ROLL_DRIFT",
+        "skill_name": "Diagonal Roll Drift",
+        "skill_intent": "Diagonal locomotion with continuous roll oscillation and intentional drift perpendicular to travel.",
+        "skill_description": "The robot travels diagonally forward-right while executing continuous roll oscillations and drifting slightly leftward (perpendicular to main travel). Phase 0\u20130.25: roll left while moving diagonally, drift left. Phase 0.25\u20130.5: roll right while moving diagonally, drift right. Phase 0.5\u20130.75: roll left again, drift left. Phase 0.75\u20131: roll right, drift right, completing cycle. The net motion is diagonal with superimposed lateral oscillation from the drift, while roll adds visual complexity.",
+        "think": "This skill combines three motion components: diagonal primary translation, perpendicular drift oscillation, and roll rotation. The drift perpendicular to main travel creates a winding diagonal path, while roll adds another layer of complexity. Unlike simple diagonal motion, this tests multi-axis coordination. Valuable for learning complex trajectory composition and understanding how multiple motion primitives can be layered without canceling each other."
+    },
+    {
+        "skill_id": "SKILL_KAYAK_PADDLE_TURN",
+        "skill_name": "Kayak Paddle Turn",
+        "skill_intent": "In-place yaw rotation generated by asymmetric paddling motions of leg pairs.",
+        "skill_description": "The robot rotates in place using kayak-paddle-like leg motions. Phase 0\u20130.25: left legs sweep backward (power stroke), right legs return forward (recovery). Phase 0.25\u20130.5: all legs transition. Phase 0.5\u20130.75: right legs sweep backward, left legs return forward. Phase 0.75\u20131: transition and reset. The asymmetric sweeping creates yaw torque without translation, with legs moving in horizontal arcs close to the ground like paddles in water.",
+        "think": "This skill uses biomimetic paddle-stroke patterns to generate pure rotation, exploring asymmetric cyclic leg motion. Unlike compass sweep which uses simultaneous pair motion, this uses sequential power and recovery strokes. The horizontal arc paths create rotation through differential action. Valuable for learning stroke-based rotation strategies and understanding how swimming-like motions can be adapted to terrestrial locomotion."
+    },
+    {
+        "skill_id": "SKILL_FORWARD_TWIST_JUMP",
+        "skill_name": "Forward Twist Jump",
+        "skill_intent": "Forward jumping with simultaneous yaw rotation during aerial phase.",
+        "skill_description": "The robot jumps forward while rotating 180 degrees in yaw during the aerial phase. Phase 0\u20130.2: crouch and prepare, all legs compress. Phase 0.2\u20130.4: explosive takeoff, body leaves ground moving forward. Phase 0.4\u20130.7: aerial twist, body rotates 180 degrees in yaw while traveling forward, legs tuck. Phase 0.7\u20130.9: prepare for landing, legs extend. Phase 0.9\u20131: land facing backward relative to takeoff, absorb impact. The forward momentum is maintained while orientation reverses.",
+        "think": "This skill combines ballistic forward translation with aerial yaw rotation, creating a complex aerial maneuver. The 180-degree twist changes facing direction while maintaining forward travel, requiring precise timing of rotation and translation. Unlike simple forward jumps or in-place spins, this decouples travel direction from facing direction. Valuable for learning aerial orientation control and understanding how rotational and translational components can be independently managed during flight."
+    },
+    {
+        "skill_id": "SKILL_UNDULATING_CRAWL_TURN",
+        "skill_name": "Undulating Crawl Turn",
+        "skill_intent": "Curved forward locomotion using body undulation where the wave propagation angle determines turn radius.",
+        "skill_description": "The robot moves forward along a curved path by propagating body undulation waves at an angle to the sagittal plane. Phase 0\u20130.33: wave originates from rear-right, propagates to front-left, creating rightward curve. Phase 0.33\u20130.67: wave continues through front half, maintaining curve. Phase 0.67\u20131: wave completes at front, rear begins next wave cycle. The angled wave propagation causes asymmetric leg timing, with right legs leading left legs, producing continuous curved forward motion. Body remains low with continuous ground contact.",
+        "think": "This skill explores how wave propagation direction can control trajectory curvature without explicit steering. By angling the undulation wave relative to body axis, the motion naturally curves. Unlike serpentine backward drift which uses S-curves, this uses a consistent wave angle for smooth turning. Valuable for learning wave-based steering strategies and understanding how body-wave parameters can encode trajectory information."
+    },
+    {
+        "skill_id": "SKILL_ORBIT_LEAN_CIRCLE",
+        "skill_name": "Orbit Lean Circle",
+        "skill_intent": "Circular locomotion with continuous inward lean and synchronized limb reaching.",
+        "skill_description": "The robot travels in a circular arc with the base rolled inward toward the center of curvature. Phase 0-0.25: outer legs extend radially while inner legs tuck close to body. Phase 0.25-0.5: all legs transition through neutral as yaw accumulates. Phase 0.5-0.75: inner legs extend while outer legs tuck. Phase 0.75-1.0: return to initial configuration. The base maintains constant roll angle and forward velocity throughout the circle.",
+        "think": "This skill explores asymmetric limb coordination coupled with base roll during curved locomotion. The inward lean simulates banking behavior while limb extensions counterbalance and maintain contact geometry. Phase variation creates rhythmic inside-outside limb role switching, valuable for learning coordination in non-straight trajectories."
+    },
+    {
+        "skill_id": "SKILL_BUTTERFLY_KICK_GLIDE",
+        "skill_name": "Butterfly Kick Glide",
+        "skill_intent": "Forward gliding propulsion using synchronized dolphin-like leg undulation.",
+        "skill_description": "The base executes a smooth vertical wave motion while all four legs perform synchronized up-down sweeps. Phase 0-0.3: base pitches down as all legs sweep backward and downward. Phase 0.3-0.5: base pitches up as legs reach maximum backward extension. Phase 0.5-0.8: base continues upward pitch while legs sweep forward and upward. Phase 0.8-1.0: base levels out and legs return to neutral, preparing for next cycle.",
+        "think": "This skill investigates simultaneous four-limb synchronization with base pitch oscillation for forward propulsion. Unlike alternating gaits, all limbs share identical phase relationships, creating a unified body wave. Useful for imitation learning of highly coupled whole-body coordination patterns."
+    },
+    {
+        "skill_id": "SKILL_TWIST_SHUFFLE_LATERAL",
+        "skill_name": "Twist Shuffle Lateral",
+        "skill_intent": "Sideways locomotion through alternating base yaw twists without net rotation.",
+        "skill_description": "The robot moves laterally while the base oscillates in yaw. Phase 0-0.2: base yaws clockwise 30 degrees while right legs push laterally outward. Phase 0.2-0.4: base returns to neutral yaw while left legs extend. Phase 0.4-0.6: base yaws counter-clockwise 30 degrees while left legs push laterally outward. Phase 0.6-0.8: base returns to neutral while right legs extend. Phase 0.8-1.0: all legs return to neutral stance. Net lateral displacement occurs without net yaw change.",
+        "think": "This skill decouples oscillatory yaw from net rotation, using angular momentum cancellation for lateral propulsion. The twist-untwist pattern couples with asymmetric limb extension to generate sideways motion. It challenges imitation learning to distinguish oscillatory from cumulative angular components."
+    },
+    {
+        "skill_id": "SKILL_ARCH_VAULT_TRAVERSE",
+        "skill_name": "Arch Vault Traverse",
+        "skill_intent": "Forward motion via repeated arching vaults with alternating front and rear dominance.",
+        "skill_description": "Phase 0-0.25: rear legs compress and front legs extend forward, base pitches backward. Phase 0.25-0.5: rear legs thrust causing base to pitch forward and rise, front legs lift. Phase 0.5-0.75: front legs contact ahead while rear legs are airborne, base pitches forward over front legs. Phase 0.75-1.0: rear legs land behind and front legs begin compression for next cycle. Creates a continuous rocking vault progression.",
+        "think": "This skill explores phase-shifted front-rear dominance with aggressive pitch modulation and brief aerial phases. Each half-cycle features a different support pair, creating asymmetric loading patterns. Valuable for learning dynamic weight transfers and coordinated pitch-translation coupling."
+    },
+    {
+        "skill_id": "SKILL_SWIZZLE_STEER",
+        "skill_name": "Swizzle Steer",
+        "skill_intent": "Forward locomotion using synchronized inward-outward leg swizzling like ice skating.",
+        "skill_description": "All four legs perform synchronized swizzle motions. Phase 0-0.3: legs sweep outward in a V-shape while sliding backward relative to base. Phase 0.3-0.5: legs rotate inward bringing feet together in a parallel stance. Phase 0.5-0.8: legs sweep outward again in V-shape while sliding backward. Phase 0.8-1.0: legs rotate inward to starting position. Base advances forward continuously through the swizzle cycles.",
+        "think": "This skill investigates symmetric four-limb coordination where lateral and longitudinal motions couple through phase-locked swizzle patterns. Unlike walking, all legs move in unison with no stance-swing distinction. Useful for learning continuous propulsion through coordinated limb orientation changes."
+    },
+    {
+        "skill_id": "SKILL_ROLL_RECOVER_ADVANCE",
+        "skill_name": "Roll Recover Advance",
+        "skill_intent": "Forward motion punctuated by full lateral roll rotations with rapid recovery.",
+        "skill_description": "Phase 0-0.15: normal forward motion with all legs extended. Phase 0.15-0.5: base executes a complete 360-degree roll about longitudinal axis while legs tuck inward. Phase 0.5-0.65: legs rapidly extend to re-establish ground contact. Phase 0.65-1.0: resume forward motion while stabilizing base orientation. The rolling phase maintains forward velocity.",
+        "think": "This skill tests the ability to maintain locomotion continuity through a full roll perturbation and recovery. The rapid leg retraction and extension pattern around the roll phase creates extreme coordination demands. Valuable for learning robustness to large orientation disturbances during locomotion."
+    },
+    {
+        "skill_id": "SKILL_CROSS_STEP_ORBIT",
+        "skill_name": "Cross Step Orbit",
+        "skill_intent": "Circular motion using crossover stepping with body facing tangent to circle.",
+        "skill_description": "The robot moves in a circle with body oriented tangent to the arc. Phase 0-0.25: outer legs cross over inner legs toward circle center. Phase 0.25-0.5: inner legs uncross and extend outward. Phase 0.5-0.75: inner legs cross over outer legs away from center. Phase 0.75-1.0: outer legs uncross and extend. Base yaw continuously rotates to maintain tangent orientation.",
+        "think": "This skill explores crossover stepping coordination while maintaining curved trajectories. The continuous yaw rotation coupled with alternating cross-uncross limb patterns creates complex phase relationships. Challenges learning of spatial reasoning in body-relative versus world-relative frames."
+    },
+    {
+        "skill_id": "SKILL_PULSE_SURGE_FORWARD",
+        "skill_name": "Pulse Surge Forward",
+        "skill_intent": "Forward motion with rhythmic surge-rest pulses and limb gathering.",
+        "skill_description": "Phase 0-0.2: all legs compress and gather under body while base lowers. Phase 0.2-0.4: explosive leg extension drives base forward and upward in a surge. Phase 0.4-0.6: base coasts forward while legs remain extended in glide position. Phase 0.6-0.8: legs begin gathering inward while base continues forward. Phase 0.8-1.0: full compression reached, ready for next surge. Creates distinct pulse-glide rhythm.",
+        "think": "This skill separates propulsion into discrete power phases and coasting phases, unlike continuous gaits. The compression-extension cycle with interspersed glide phases creates non-uniform temporal structure. Useful for learning variable-cadence locomotion and energy-like motion patterning."
+    },
+    {
+        "skill_id": "SKILL_TUMBLE_FORWARD_CASCADE",
+        "skill_name": "Tumble Forward Cascade",
+        "skill_intent": "Forward progression through sequential front-to-back rolling tumbles.",
+        "skill_description": "Phase 0-0.2: front legs fold while rear legs thrust, pitching base forward. Phase 0.2-0.5: base continues forward pitch rotation past 90 degrees, all legs tucked. Phase 0.5-0.7: base approaches 180 degrees pitch, rear becomes new front. Phase 0.7-0.9: newly-front legs extend to catch rotation and contact ground. Phase 0.9-1.0: base stabilizes upright, ready for next tumble. Each tumble advances the robot forward.",
+        "think": "This skill explores forward pitch rotation as a locomotion mechanism with phase-locked leg tucking and extension. Unlike continuous rolling, each tumble is discrete with clear preparation and recovery phases. Valuable for learning coordination through topologically non-trivial state transitions."
+    },
+    {
+        "skill_id": "SKILL_SIDE_SAIL_DRIFT",
+        "skill_name": "Side Sail Drift",
+        "skill_intent": "Lateral drifting motion with legs extended asymmetrically like sailing.",
+        "skill_description": "The robot drifts laterally with asymmetric leg configuration. Phase 0-0.3: right legs extend fully outward while left legs remain compact, base rolls slightly right. Phase 0.3-0.5: all legs transition toward neutral. Phase 0.5-0.8: left legs extend fully outward while right legs compact, base rolls slightly left. Phase 0.8-1.0: return to neutral configuration. Net lateral motion accumulates throughout cycle.",
+        "think": "This skill explores lateral propulsion through asymmetric limb extension and base roll coupling. The sail-like leg configurations create directional anisotropy in contact geometry. Useful for learning how limb asymmetry generates directional motion without explicit pushing."
+    },
+    {
+        "skill_id": "SKILL_ANCHOR_PIVOT_WALK",
+        "skill_name": "Anchor Pivot Walk",
+        "skill_intent": "Forward walking where one leg anchors while others pivot around it.",
+        "skill_description": "Phase 0-0.25: FL anchors in place while FR, RL, RR swing forward and base pivots around FL. Phase 0.25-0.5: FR anchors while FL, RL, RR swing forward pivoting around FR. Phase 0.5-0.75: RL anchors while FL, FR, RR swing forward pivoting around RL. Phase 0.75-1.0: RR anchors while FL, FR, RL swing forward pivoting around RR. Each pivot advances base forward.",
+        "think": "This skill creates forward locomotion through sequential single-leg anchoring and three-leg pivoting. Unlike typical gaits, one leg remains stationary each sub-phase while the body rotates around it. Challenges learning of singulated leg roles and pivot-based propulsion mechanisms."
+    },
+    {
+        "skill_id": "SKILL_HELIX_CLIMB_MOTION",
+        "skill_name": "Helix Climb Motion",
+        "skill_intent": "Forward and upward motion following a helical trajectory with coordinated yaw and pitch.",
+        "skill_description": "The base follows a helical path combining forward translation, yaw rotation, and vertical oscillation. Phase 0-0.25: base rises while yawing clockwise, legs extend on right side. Phase 0.25-0.5: base continues forward and yaw, height peaks. Phase 0.5-0.75: base descends while yawing continues, legs extend on left side. Phase 0.75-1.0: base reaches lowest point, completing one helix turn. Legs adjust height asymmetrically to support helical path.",
+        "think": "This skill couples three-dimensional base trajectory with phase-dependent limb extensions. The helical path requires coordinated yaw, vertical, and forward velocity components. Valuable for learning complex 3D trajectory following with limb support adaptation."
+    },
+    {
+        "skill_id": "SKILL_REVERSE_SCREW_DRIVE",
+        "skill_name": "Reverse Screw Drive",
+        "skill_intent": "Backward locomotion with continuous yaw rotation creating screw-like motion.",
+        "skill_description": "The robot moves backward while continuously rotating in yaw. Phase 0-0.25: legs on right side push backward while extending, contributing to counter-clockwise yaw. Phase 0.25-0.5: legs on left side push backward while extending. Phase 0.5-0.75: right legs push again with increased extension. Phase 0.75-1.0: left legs complete cycle. Net result is backward translation with steady counter-clockwise rotation.",
+        "think": "This skill combines backward translation with continuous rotation, creating a screw-like trajectory. The phase-locked asymmetric leg extensions generate both linear and angular momentum. Useful for learning multi-objective locomotion where direction and orientation change simultaneously."
+    },
+    {
+        "skill_id": "SKILL_SCISSORS_KICK_LATERAL",
+        "skill_name": "Scissors Kick Lateral",
+        "skill_intent": "Sideways motion using alternating vertical scissors kicks on opposite sides.",
+        "skill_description": "Phase 0-0.2: right legs scissor vertically with FR up and RR down while left legs remain neutral, generating rightward impulse. Phase 0.2-0.4: right legs return to neutral. Phase 0.4-0.6: left legs scissor with FL up and RL down generating leftward impulse. Phase 0.6-0.8: left legs return to neutral. Phase 0.8-1.0: base shifts laterally based on net accumulated impulses. Vertical scissoring produces lateral motion.",
+        "think": "This skill explores lateral propulsion through vertical limb motions, coupling vertical scissors with horizontal displacement. The phase-alternating sides create rhythmic lateral force generation. Challenges learning of non-intuitive force direction mappings."
+    },
+    {
+        "skill_id": "SKILL_COMPASS_SWEEP_TURN",
+        "skill_name": "Compass Sweep Turn",
+        "skill_intent": "In-place yaw rotation using compass-like sweeping of diagonal leg pairs.",
+        "skill_description": "Phase 0-0.25: FL and RR extend radially outward like compass arms while FR and RL tuck inward. Phase 0.25-0.5: all legs transition through neutral while base yaws clockwise. Phase 0.5-0.75: FR and RL extend radially outward while FL and RR tuck inward. Phase 0.75-1.0: all legs return to neutral completing clockwise yaw increment. Diagonal coordination produces pure rotation.",
+        "think": "This skill uses diagonal leg pair coordination to generate in-place rotation without translation. The compass-arm extensions create moment arms for yaw torque while maintaining base position. Valuable for learning pure rotational motion through coordinated limb geometry."
+    },
+    {
+        "skill_id": "SKILL_WAVE_HOP_FORWARD",
+        "skill_name": "Wave Hop Forward",
+        "skill_intent": "Forward hopping where leg liftoff propagates as a wave from rear to front.",
+        "skill_description": "Phase 0-0.15: RL and RR lift off together. Phase 0.15-0.3: FL and FR lift off while rear legs remain airborne. Phase 0.3-0.5: all legs airborne at apex, base translates forward. Phase 0.5-0.65: RL and RR contact ground first. Phase 0.65-0.8: FL and FR contact ground. Phase 0.8-1.0: all legs compress preparing for next wave. Liftoff and landing propagate front-to-back.",
+        "think": "This skill creates forward hopping through sequential rather than simultaneous leg liftoff, producing a wave propagation pattern. The staggered aerial phases create non-uniform loading during flight and landing. Useful for learning coordinated transitions between contact states."
+    },
+    {
+        "skill_id": "SKILL_SHIMMY_SHAKE_ADVANCE",
+        "skill_name": "Shimmy Shake Advance",
+        "skill_intent": "Forward motion using high-frequency lateral base oscillations with rapid leg adjustments.",
+        "skill_description": "Phase 0-0.1: base shakes laterally right, legs adjust asymmetrically. Phase 0.1-0.2: base shakes laterally left. Phase 0.2-0.3: base shakes right. Phase 0.3-0.4: base shakes left. Pattern repeats with increasing forward bias. Phase 0.4-0.7: continue rapid lateral oscillations while legs make small forward steps. Phase 0.7-1.0: oscillations dampen and base advances forward. High-frequency shimmy produces net forward motion.",
+        "think": "This skill explores high-frequency oscillatory motion coupled with low-frequency forward progression. The rapid lateral shaking with subtle forward-biased leg adjustments creates vibration-based locomotion. Challenges learning of multi-timescale coordination and oscillatory stabilization."
+    },
+    {
+        "skill_id": "SKILL_RATCHET_CRAWL_BACKWARD",
+        "skill_name": "Ratchet Crawl Backward",
+        "skill_intent": "Backward locomotion using ratcheting motion with alternating lock and slide phases.",
+        "skill_description": "Phase 0-0.2: front legs lock in place while rear legs slide backward bringing base backward. Phase 0.2-0.4: rear legs lock while front legs slide backward further. Phase 0.4-0.6: front legs lock again, rear legs slide backward. Phase 0.6-0.8: rear legs lock, front legs slide backward. Phase 0.8-1.0: all legs momentarily neutral before next ratchet cycle. Creates discrete backward steps through alternating lock-slide.",
+        "think": "This skill explores backward locomotion through alternating mechanical advantage phases where one pair locks and the other slides. The ratcheting mechanism creates distinct power and recovery sub-phases. Valuable for learning discrete state coordination and alternating constraint patterns."
+    },
+    {
+        "skill_id": "SKILL_TWIRL_JUMP_SPIRAL",
+        "skill_name": "Twirl Jump Spiral",
+        "skill_intent": "Vertical jump with simultaneous yaw spin and legs spiraling outward.",
+        "skill_description": "Phase 0-0.15: all legs compress for takeoff thrust. Phase 0.15-0.3: legs extend explosively launching base upward and initiating yaw spin. Phase 0.3-0.6: legs spiral outward in helical pattern while base spins and rises, each leg at different radial distance. Phase 0.6-0.8: legs begin retracting spirally inward as base descends. Phase 0.8-0.95: legs extend for landing preparation. Phase 0.95-1.0: landing completed with yaw spin arrested.",
+        "think": "This skill combines vertical jump with rotational motion and helical leg patterning. The spiral leg configuration during flight creates complex spatial coordination requirements. Useful for learning coupled translational, rotational, and limb configuration control during aerial phases."
+    },
+    {
+        "skill_id": "SKILL_GALLOP_SLIDE_HYBRID",
+        "skill_name": "Gallop Slide Hybrid",
+        "skill_intent": "Forward motion alternating between brief gallop-like compressions and extended sliding glides.",
+        "skill_description": "Phase 0-0.15: rear legs compress and front legs extend in gathered position. Phase 0.15-0.3: rear legs thrust extending fully, launching base forward with brief flight phase. Phase 0.3-0.6: all legs extend into wide sliding stance, base glides forward with minimal vertical motion. Phase 0.6-0.75: legs begin gathering inward. Phase 0.75-1.0: return to compressed starting position. Alternates between ballistic thrust and momentum-conserving glide.",
+        "think": "This skill hybridizes impulsive propulsion with passive gliding, creating distinct power and coast phases. The compression-explosion-glide sequence requires different limb coordination modes within one cycle. Valuable for learning multi-modal locomotion strategies and energy management concepts."
+    },
+    {
+        "skill_id": "SKILL_VORTEX_SINK_DESCENT",
+        "skill_name": "Vortex Sink Descent",
+        "skill_intent": "Descending spiral motion where base height decreases while executing tightening circular path.",
+        "skill_description": "Phase 0\u20130.25: Base begins circular motion at nominal height with wide radius, all legs extended outward. Phase 0.25\u20130.5: Base height gradually decreases while circular radius tightens, legs begin drawing inward. Phase 0.5\u20130.75: Continued descent and radius contraction, legs now close to body creating compact profile. Phase 0.75\u20131.0: Minimum height reached with tightest circle radius, legs fully retracted before cycle reset.",
+        "think": "This skill explores coupled height-radius-yaw coordination forming a 3D vortex trajectory. Phase controls simultaneous modulation of vertical position, orbital radius, and limb extension. The motion resembles water draining in a vortex, valuable for learning policies that coordinate multiple geometric dimensions. Limbs act as hybrid passive-active elements, both supporting the descending base and visually reinforcing the contraction pattern."
+    },
+    {
+        "skill_id": "SKILL_RICOCHET_BOUNCE_DIAGONAL",
+        "skill_name": "Ricochet Bounce Diagonal",
+        "skill_intent": "Diagonal locomotion using alternating angular bounces that create zigzag ricochet pattern.",
+        "skill_description": "Phase 0\u20130.2: Base compresses and yaws 30 degrees left, rear-left and front-left legs load. Phase 0.2\u20130.4: Explosive extension launches base diagonally forward-right while airborne, legs extend. Phase 0.4\u20130.6: Landing with compression, base yaws 30 degrees right, rear-right and front-right legs absorb. Phase 0.6\u20130.8: Extension launches base diagonally forward-left, aerial phase with legs extended. Phase 0.8\u20131.0: Landing preparation, base neutralizes yaw and prepares for next left ricochet.",
+        "think": "This skill enforces asymmetric loading and ballistic diagonal trajectories with discrete yaw reversals. Phase creates distinct compression-launch-flight-landing sub-phases with alternating side dominance. Valuable for imitation learning as it combines aerial dynamics, angular momentum changes, and diagonal translation without being a standard gait. Limbs alternate between active launch generators and passive aerial stabilizers."
+    },
+    {
+        "skill_id": "SKILL_TIDAL_SWEEP_LATERAL",
+        "skill_name": "Tidal Sweep Lateral",
+        "skill_intent": "Sideways locomotion generated by sweeping wave that moves from front to rear along lateral axis.",
+        "skill_description": "Phase 0\u20130.3: Front legs sweep outward laterally to the left while base shifts subtly leftward, rear legs remain neutral. Phase 0.3\u20130.6: Mid-phase where all legs participate, creating continuous lateral wave propagation, base continues leftward translation. Phase 0.6\u20130.9: Rear legs complete their outward sweep while front legs begin returning inward, base displacement maximizes. Phase 0.9\u20131.0: All legs return to neutral as wave resets, base settles at new lateral position.",
+        "think": "This skill explores wave-based lateral propulsion without body rotation or forward motion. Phase controls the spatial propagation of the sweep from anterior to posterior. Unlike discrete stepping, the motion is continuous and fluid like a tide washing across the body. Useful for learning policies that generate lateral translation through coordinated sweeping rather than alternating steps. Limbs act as wave-generating paddles."
+    },
+    {
+        "skill_id": "SKILL_CHAMBERED_KICK_ADVANCE",
+        "skill_name": "Chambered Kick Advance",
+        "skill_intent": "Forward locomotion using martial-arts-style chambered leg retractions followed by explosive forward extensions.",
+        "skill_description": "Phase 0\u20130.15: Rear-left leg chambers by retracting close to body with knee bent high. Phase 0.15\u20130.3: Chambered leg explosively extends forward-downward while base surges forward. Phase 0.3\u20130.45: Rear-right leg chambers while rear-left recovers. Phase 0.45\u20130.6: Rear-right extends explosively, continuing forward surge. Phase 0.6\u20130.75: Front-left chambers and extends. Phase 0.75\u20130.9: Front-right chambers and extends. Phase 0.9\u20131.0: All legs briefly neutral before cycle repeats.",
+        "think": "This skill explores discrete power generation phases with extreme limb retraction followed by rapid extension. Phase creates sequential chambering across all legs, producing pulsed forward motion rather than smooth gaits. Valuable for policies learning to coordinate high-acceleration impulses with balance recovery. Motion resembles martial arts kicks adapted to quadrupedal locomotion. Limbs alternate between coiled energy storage and explosive release states."
+    },
+    {
+        "skill_id": "SKILL_REVERBERATING_YAW_PULSE",
+        "skill_name": "Reverberating Yaw Pulse",
+        "skill_intent": "In-place yaw rotation using damped oscillatory pulses that gradually settle.",
+        "skill_description": "Phase 0\u20130.2: Base executes sharp 60-degree yaw pulse counterclockwise, legs extend to create moment. Phase 0.2\u20130.4: Base reverses with 40-degree clockwise yaw, legs retract partially. Phase 0.4\u20130.6: Another reversal with 25-degree counterclockwise yaw, amplitude decreasing. Phase 0.6\u20130.8: Small 15-degree clockwise correction. Phase 0.8\u20131.0: Final damping with 5-degree counterclockwise adjustment, settling to net 45-degree rotation from start.",
+        "think": "This skill explores oscillatory motion with decreasing amplitude envelope, mimicking physical damping. Phase controls the amplitude decay and frequency of reverberating angular pulses. Unlike constant-rate spinning, this creates visually distinct accelerating-decelerating rhythm. Valuable for learning policies that can generate and control oscillatory trajectories with temporal variation. Limbs act as tunable moment-generating elements with phase-dependent extension."
+    },
+    {
+        "skill_id": "SKILL_AUGER_DRILL_DESCENT",
+        "skill_name": "Auger Drill Descent",
+        "skill_intent": "Vertical descending motion combined with rapid yaw rotation resembling drilling action.",
+        "skill_description": "Phase 0\u20131.0 continuous: Base maintains constant rapid yaw rotation (multiple full rotations per cycle) while height continuously decreases from maximum to minimum. All four legs execute helical trajectories, spiraling downward around body axis. Legs remain relatively extended, creating drill-bit-like visual with body as central shaft. Rotation rate stays constant while descent rate is uniform throughout phase.",
+        "think": "This skill decouples rotation frequency from descent rate, creating auger-like drilling motion. Phase controls uniform height decrease while maintaining steady angular velocity. Unlike spiral descent with varying radius, this keeps legs extended at constant radius while drilling downward. Valuable for learning continuous coupled rotation-translation that resembles mechanical tool motion. Legs act as passive helical stabilizers around the rotating-descending axis."
+    },
+    {
+        "skill_id": "SKILL_SKIP_SYNCOPATION_FORWARD",
+        "skill_name": "Skip Syncopation Forward",
+        "skill_intent": "Forward locomotion using syncopated skipping rhythm with unexpected timing variations.",
+        "skill_description": "Phase 0\u20130.15: Quick double-bounce on rear legs, front legs airborne. Phase 0.15\u20130.35: Long glide phase, all legs extended in flight, forward translation. Phase 0.35\u20130.4: Brief ground contact on front legs. Phase 0.4\u20130.55: Another quick double-bounce on front legs, rear airborne. Phase 0.55\u20130.8: Extended aerial glide phase with asymmetric leg configuration. Phase 0.8\u20131.0: Landing preparation with all legs, syncopated touchdown timing (left pair then right pair).",
+        "think": "This skill explores non-uniform temporal rhythm with unexpected beat placement. Phase creates irregular sub-phase durations that violate periodic gait assumptions. The double-bounces and varied glide lengths produce syncopated jazz-like timing. Valuable for policies learning temporally complex coordination patterns. Limbs alternate between rapid pulsing and sustained extension, with role transitions at irregular phase intervals."
+    },
+    {
+        "skill_id": "SKILL_PARALLEL_DRIFT_SLIDE",
+        "skill_name": "Parallel Drift Slide",
+        "skill_intent": "Forward motion where body maintains fixed yaw angle offset while drifting diagonally.",
+        "skill_description": "Phase 0\u20131.0: Base maintains constant 45-degree yaw offset (body pointing right of travel direction) while translating forward-left diagonally. Left legs perform shallow pushing slides perpendicular to body axis. Right legs drag passively with minimal ground interaction. Base height remains constant. Motion resembles car drifting where heading and travel direction differ by constant angle.",
+        "think": "This skill explores decoupling of body orientation from travel direction, creating controlled drift. Phase controls the continuous diagonal translation while maintaining fixed yaw offset. Unlike turning or spinning, the angular discrepancy stays constant. Valuable for learning policies that can sustain anisotropic ground contact and non-aligned heading-velocity vectors. Left limbs act as active slide generators while right limbs provide passive stabilization."
+    },
+    {
+        "skill_id": "SKILL_BELLOWS_PUMP_LATERAL",
+        "skill_name": "Bellows Pump Lateral",
+        "skill_intent": "Sideways locomotion generated by rhythmic body width expansion and contraction like accordion bellows.",
+        "skill_description": "Phase 0\u20130.25: Body compresses laterally, left and right legs draw inward toward midline, base shifts slightly left. Phase 0.25\u20130.5: Explosive lateral expansion, legs extend outward symmetrically, base surges leftward during expansion. Phase 0.5\u20130.75: Compression phase, legs retract inward, base continues leftward drift. Phase 0.75\u20131.0: Another expansion pulse, legs extend, additional leftward displacement. Net result is leftward locomotion through pump-like lateral oscillations.",
+        "think": "This skill explores lateral propulsion through width modulation rather than leg cycling. Phase controls the compression-expansion rhythm and couples it to base translation. The bellows metaphor captures the breathing-like quality where energy storage and release drive lateral motion. Valuable for policies learning to generate locomotion through body deformation. All limbs act symmetrically as bellows walls."
+    },
+    {
+        "skill_id": "SKILL_PRETZEL_TWIST_ROLL",
+        "skill_name": "Pretzel Twist Roll",
+        "skill_intent": "In-place complex 3D rotation combining simultaneous pitch, roll, and yaw in pretzel-like pattern.",
+        "skill_description": "Phase 0\u20130.25: Base begins pitch-forward 30 degrees while rolling right 30 degrees and yawing clockwise 45 degrees, legs adjust asymmetrically. Phase 0.25\u20130.5: Pitch continues to 60 degrees, roll reverses to left 30 degrees, yaw reaches 90 degrees, creating twisted configuration. Phase 0.5\u20130.75: Pitch begins returning to neutral while roll maximizes at left 60 degrees, yaw continues to 180 degrees. Phase 0.75\u20131.0: All rotations return toward neutral, creating full-body unwinding motion, completing complex 3D knot.",
+        "think": "This skill explores simultaneous three-axis rotation with non-sinusoidal phase relationships creating knotted trajectory. Phase controls the complex coupling between pitch, roll, and yaw that produces pretzel-like appearance. Unlike simple barrel rolls or spins, all three axes vary independently with different phase functions. Valuable for learning policies that coordinate multiple rotational degrees of freedom. Limbs continuously adjust to maintain configuration throughout the twist."
+    },
+    {
+        "skill_id": "SKILL_METRONOME_SWAY_ADVANCE",
+        "skill_name": "Metronome Sway Advance",
+        "skill_intent": "Forward locomotion driven by large-amplitude lateral base swaying like an inverted pendulum metronome.",
+        "skill_description": "Phase 0\u20130.25: Base rolls strongly to the right (30 degrees) while shifting laterally right, left legs extend, right legs compress. Phase 0.25\u20130.5: Base transitions through neutral roll while surging forward, all legs briefly equalized. Phase 0.5\u20130.75: Base rolls strongly to the left (30 degrees) while shifting laterally left, right legs extend, left legs compress. Phase 0.75\u20131.0: Base returns through neutral with another forward surge. Continuous large-amplitude swaying produces forward progression through alternating lateral weight shifts.",
+        "think": "This skill explores forward locomotion generated by lateral roll oscillations rather than sagittal leg cycling. Phase controls the large-amplitude roll rhythm and couples it to forward translation. The metronome metaphor captures the regular, exaggerated swaying that drives motion. Valuable for policies learning to convert lateral energy into forward propulsion. Limbs act as adjustable support columns that enable and stabilize the rolling motion."
+    },
+    {
+        "skill_id": "SKILL_PINWHEEL_LATERAL_SPIN",
+        "skill_name": "Pinwheel Lateral Spin",
+        "skill_intent": "Sideways locomotion where legs rotate like pinwheel blades while base translates laterally.",
+        "skill_description": "Phase 0\u20130.25: All legs simultaneously rotate 90 degrees clockwise around their base attachments (viewed from above) while base shifts left. Phase 0.25\u20130.5: Legs continue rotating another 90 degrees (180 total), base continues left translation. Phase 0.5\u20130.75: Legs rotate to 270 degrees total, maintaining synchronized pinwheel rotation, leftward motion sustained. Phase 0.75\u20131.0: Legs complete full 360-degree rotation returning to initial configuration, base achieves net leftward displacement.",
+        "think": "This skill explores synchronized circular leg rotation coupled to lateral base translation. Phase controls the uniform angular progression of all legs rotating in unison like pinwheel blades. Unlike walking or paddling, all limbs maintain identical phase and rotation rate. Valuable for learning policies that coordinate continuous circular joint trajectories with directional locomotion. Legs act as identically-phased rotating elements generating lateral thrust through synchronized sweeping."
+    },
+    {
+        "skill_id": "SKILL_HAMMOCK_SWING_TURN",
+        "skill_name": "Hammock Swing Turn",
+        "skill_intent": "Circular motion where base sways side-to-side perpendicular to travel direction like swinging hammock.",
+        "skill_description": "Phase 0\u20130.2: Base follows circular path clockwise while simultaneously swinging laterally outward from circle center. Phase 0.2\u20130.4: Continuing circular motion, base swings inward toward circle center. Phase 0.4\u20130.6: Base swings outward again, creating lateral oscillation perpendicular to circular path. Phase 0.6\u20130.8: Inward swing. Phase 0.8\u20131.0: Outward swing completing both the circular orbit and multiple lateral sway oscillations. Legs adjust continuously to support the compound motion.",
+        "think": "This skill explores superposition of circular locomotion with perpendicular lateral oscillation. Phase controls both the orbital progression and the independent swaying frequency. The hammock metaphor captures the relaxed swinging that modulates the circular path. Valuable for policies learning to coordinate two simultaneous periodic motions in orthogonal directions. Limbs provide dynamic support for the compound trajectory."
+    },
+    {
+        "skill_id": "SKILL_TYPEWRITER_RETURN_LATERAL",
+        "skill_name": "Typewriter Return Lateral",
+        "skill_intent": "Stepped lateral motion with discrete rapid returns resembling typewriter carriage.",
+        "skill_description": "Phase 0\u20130.4: Slow continuous lateral slide to the right, all legs sliding smoothly, base drifting rightward with constant velocity. Phase 0.4\u20130.45: Sudden rapid return movement to the left, legs execute quick synchronized leftward adjustment. Phase 0.45\u20130.85: Another slow continuous rightward slide. Phase 0.85\u20130.9: Another rapid return movement leftward. Phase 0.9\u20131.0: Brief settling. Net result is rightward locomotion with periodic rapid corrections.",
+        "think": "This skill explores asymmetric velocity profiles with slow progression and rapid resets. Phase creates distinct fast-slow timing that mimics mechanical typewriter motion. Unlike smooth oscillations, the rapid returns introduce discontinuous velocity changes. Valuable for policies learning non-smooth trajectories with impulse-like corrections. Limbs operate in two distinct modes: sustained sliding and synchronized rapid repositioning."
+    },
+    {
+        "skill_id": "SKILL_FOLDING_FAN_ROTATION",
+        "skill_name": "Folding Fan Rotation",
+        "skill_intent": "In-place yaw rotation where legs alternately fold and unfold like a traditional folding fan.",
+        "skill_description": "Phase 0\u20130.25: Front legs fold inward while rear legs extend outward radially, base begins clockwise yaw. Phase 0.25\u20130.5: Front legs begin extending while rear legs begin folding, yaw continues. Phase 0.5\u20130.75: Front legs fully extended radially while rear legs fully folded inward, yaw progresses. Phase 0.75\u20131.0: Roles reverse again with front folding and rear extending, completing rotation increment. The alternating fold-unfold pattern creates visual fan-opening-closing effect during spin.",
+        "think": "This skill explores yaw rotation generated by alternating limb extension patterns creating radial asymmetry. Phase controls the coordinated fold-unfold sequencing between front and rear pairs. The folding fan metaphor captures the rhythmic opening and closing that drives rotation. Valuable for policies learning to generate turning through dynamic radial reconfiguration rather than stepping. Limbs alternate between compact folded and extended spoke-like states."
+    },
+    {
+        "skill_id": "SKILL_ESCALATOR_CLIMB_FORWARD",
+        "skill_name": "Escalator Climb Forward",
+        "skill_intent": "Forward and upward locomotion where legs walk in place while base ascends along inclined trajectory.",
+        "skill_description": "Phase 0\u20131.0 continuous: Base follows constant inclined trajectory upward and forward at fixed angle. All four legs execute continuous walking-like cycling (alternating diagonal pairs) but with vertical motion that creates appearance of climbing moving stairs. Legs maintain ground contact timing and stance patterns of walking, but base elevation increases uniformly throughout phase, creating escalator-like upward travel.",
+        "think": "This skill explores decoupling of leg cycling pattern from base trajectory by adding continuous height gain to walking coordination. Phase controls the walking rhythm while base follows non-horizontal path. Unlike jumping or vaulting, the ascent is smooth and continuous. Valuable for policies learning to maintain rhythmic leg patterns while base follows arbitrary trajectories. Legs act as walking actuators on a steadily rising platform."
+    },
+    {
+        "skill_id": "SKILL_COMPASS_NEEDLE_SEEK",
+        "skill_name": "Compass Needle Seek",
+        "skill_intent": "In-place oscillating yaw rotation that gradually converges to target heading like compass needle settling.",
+        "skill_description": "Phase 0\u20130.2: Base rotates 40 degrees clockwise overshooting target heading. Phase 0.2\u20130.4: Reverses with 30-degree counterclockwise rotation, still overshooting but amplitude reduced. Phase 0.4\u20130.6: Rotates 20 degrees clockwise, oscillation narrowing. Phase 0.6\u20130.8: 12-degree counterclockwise adjustment. Phase 0.8\u20131.0: Final 5-degree clockwise settle, converging to target heading with damped oscillation.",
+        "think": "This skill explores goal-directed oscillatory convergence rather than pure periodic motion. Phase controls the amplitude decay and alternating direction that produces settling behavior. Unlike reverberating pulse, this has explicit target orientation. Valuable for policies learning convergent oscillatory trajectories with directional bias. Limbs provide moment generation that decreases in magnitude as heading approaches target, creating damped seeking behavior."
+    },
+    {
+        "skill_id": "SKILL_ORBITING_SATELLITES",
+        "skill_name": "Orbiting Satellites",
+        "skill_intent": "Forward locomotion where diagonal leg pairs orbit around their shared center while base translates.",
+        "skill_description": "Phase 0\u20130.5: Front-left and rear-right legs orbit clockwise around their diagonal midpoint in circular trajectories while remaining grounded, base moves forward. Phase 0.5\u20131.0: Front-right and rear-left legs orbit clockwise around their diagonal midpoint, base continues forward. The two diagonal pairs take turns orbiting, creating alternating circular leg motion that propels forward translation.",
+        "think": "This skill explores forward propulsion generated by diagonal-pair circular orbiting rather than fore-aft leg swing. Phase controls the alternation between diagonal pairs executing circular trajectories. The satellite metaphor captures legs orbiting around paired centers. Valuable for policies learning to convert local circular motion into global translation. Diagonal leg pairs act as coupled orbital systems that alternate activity phases."
+    },
+    {
+        "skill_id": "SKILL_WINDSHIELD_WIPER_YAW",
+        "skill_name": "Windshield Wiper Yaw",
+        "skill_intent": "In-place yaw oscillation using asymmetric arc lengths resembling windshield wiper motion.",
+        "skill_description": "Phase 0\u20130.6: Slow clockwise yaw rotation through 70-degree arc, legs sweep through extended arc gradually. Phase 0.6\u20130.7: Rapid counterclockwise return through same 70 degrees in brief time, legs snap back quickly. Phase 0.7\u20131.0: Pause and preparation before next slow sweep. Motion creates asymmetric timing where sweep is slow and return is fast, like automobile wiper.",
+        "think": "This skill explores yaw rotation with extreme timing asymmetry between forward and return phases. Phase creates distinct slow-sweep and fast-return intervals with different angular velocities. The windshield wiper metaphor captures the mechanical asymmetric rhythm. Valuable for policies learning to generate same angular displacement with variable timing. Limbs operate in two distinct velocity regimes: gradual extension during sweep and rapid retraction during return."
+    },
+    {
+        "skill_id": "SKILL_ZIPPER_MERGE_LATERAL",
+        "skill_name": "Zipper Merge Lateral",
+        "skill_intent": "Sideways locomotion where alternating legs interleave like zipper teeth merging.",
+        "skill_description": "Phase 0\u20130.2: Left-front leg steps laterally left and plants. Phase 0.2\u20130.4: Right-front leg steps left passing between left-front and left-rear, creating interleaving. Phase 0.4\u20130.6: Left-rear leg steps left interleaving with right legs. Phase 0.6\u20130.8: Right-rear leg steps left, completing merge pattern. Phase 0.8\u20131.0: All legs briefly together in merged configuration before spreading to repeat. Legs alternate sides creating woven appearance during lateral travel.",
+        "think": "This skill explores lateral locomotion using alternating interleaved leg placement creating zipper-like visual. Phase controls the sequential side-alternating stepping pattern with crossover trajectories. Unlike simple sideways walking, legs actively pass between each other creating interwoven pattern. Valuable for policies learning complex spatial coordination with crossing constraints. Legs alternate roles as interior and exterior elements in the merging sequence."
+    },
+    {
+        "skill_id": "SKILL_SPIRAL_RETRACT_ADVANCE",
+        "skill_name": "Spiral Retract Advance",
+        "skill_intent": "Forward locomotion where legs spiral inward during stance and extend during recovery, creating spring-like compression cycles.",
+        "skill_description": "Phase 0\u20130.25: All legs extend radially outward while base lowers and moves forward. Phase 0.25\u20130.5: Legs spiral inward toward body centerline in coordinated helical motion, base rises slightly. Phase 0.5\u20130.75: Legs fully retracted, base at peak height, forward velocity maintained. Phase 0.75\u20131.0: Legs begin outward spiral extension, base descends, cycle repeats. The spiraling creates a corkscrew visual at the legs while base translates smoothly forward.",
+        "think": "This skill explores radial compression-extension cycles with helical coordination rather than vertical lift. The coupling between leg spiral angle and base height creates a spring-loaded appearance. Useful for learning continuous radial modulation and height-velocity coupling. Limbs act as hybrid: actively spiraling yet passively supporting translation."
+    },
+    {
+        "skill_id": "SKILL_ASYMMETRIC_SPIN_WALK",
+        "skill_name": "Asymmetric Spin Walk",
+        "skill_intent": "Forward walking where left and right leg pairs rotate at different rates, creating continuous asymmetric yaw drift.",
+        "skill_description": "The robot walks forward with an asymmetric gait: left legs execute slow, wide circular sweeps while right legs perform quick, tight rotations. This rate difference induces continuous leftward yaw rotation while maintaining forward progression. Phase 0\u20130.4: Left legs sweep wide arcs, right legs complete full rotation. Phase 0.4\u20130.6: Transition phase with rate convergence. Phase 0.6\u20131.0: Right legs sweep wide, left legs rotate quickly, yaw reverses briefly before returning to dominant leftward spin. Base height oscillates with leg coordination asymmetry.",
+        "think": "Explores intentional left-right asymmetry in leg coordination to generate coupled translation and rotation. Breaks symmetry assumption and trains policies on asymmetric gaits that still produce coherent forward motion. The varying rotation rates create complex base trajectory coupling."
+    },
+    {
+        "skill_id": "SKILL_WAVE_BOUNCE_DIAGONAL",
+        "skill_name": "Wave Bounce Diagonal",
+        "skill_intent": "Diagonal locomotion driven by traveling vertical bounce waves propagating from one corner to opposite corner.",
+        "skill_description": "Phase 0\u20130.25: RL leg initiates downward bounce, base tilts toward rear-left, diagonal motion begins. Phase 0.25\u20130.5: Bounce wave travels to FR leg, base levels and accelerates diagonally. Phase 0.5\u20130.75: FR leg completes bounce peak, RR leg begins next wave. Phase 0.75\u20131.0: Wave propagates through FL, base completes diagonal stride and resets for next cycle. Each leg bounces sequentially along the diagonal axis, creating a ripple effect.",
+        "think": "This skill uses sequential corner-to-corner bounce propagation to generate diagonal translation. The phase timing of vertical oscillation determines diagonal direction and smoothness. Valuable for learning spatiotemporal wave coordination and diagonal velocity generation without lateral stepping."
+    },
+    {
+        "skill_id": "SKILL_CLOVERLEAF_TRACE",
+        "skill_name": "Cloverleaf Trace",
+        "skill_intent": "Complex ground trajectory forming a four-lobed cloverleaf pattern with synchronized limb reaching.",
+        "skill_description": "The base traces a cloverleaf shape: Phase 0\u20130.25 forms the first lobe with curved rightward motion, legs reaching outward. Phase 0.25\u20130.5 crosses center and forms second lobe leftward with legs retracting. Phase 0.5\u20130.75 creates third lobe forward-right with legs extending diagonally. Phase 0.75\u20131.0 completes fourth lobe backward-left returning to start. Each lobe requires coordinated lean, yaw adjustment, and limb extension modulation to trace smooth petal shapes.",
+        "think": "Explores complex multi-directional trajectory generation requiring continuous modulation of translation direction, yaw, and limb reach. The cloverleaf geometry enforces smooth transitions between forward, lateral, and backward motion components within a single cycle. Challenges policies to coordinate omnidirectional motion primitives."
+    },
+    {
+        "skill_id": "SKILL_SCISSOR_LIFT_LATERAL",
+        "skill_name": "Scissor Lift Lateral",
+        "skill_intent": "Sideways locomotion using scissor-like vertical leg extensions that lift and translate the base laterally.",
+        "skill_description": "Phase 0\u20130.3: Left legs extend vertically like scissor lifts, raising left side of base while right legs compress, base tilts right and shifts rightward. Phase 0.3\u20130.5: All legs equalize height, base levels while maintaining rightward velocity. Phase 0.5\u20130.8: Right legs extend vertically, left legs compress, base tilts left but continues rightward drift. Phase 0.8\u20131.0: Height equalizes, base settles and completes lateral translation cycle. The scissoring creates alternating tilt and lift patterns.",
+        "think": "Uses vertical scissor mechanics to generate lateral translation through asymmetric height modulation. Explores the coupling between roll oscillation and lateral velocity. The lift-lower cycle creates passive lateral drift as legs alternate load bearing. Hybrid interpretation: legs act as active lifts and passive lateral stabilizers."
+    },
+    {
+        "skill_id": "SKILL_REVERSE_HELIX_SINK",
+        "skill_name": "Reverse Helix Sink",
+        "skill_intent": "Backward motion following helical trajectory with decreasing base height, like descending a spiral staircase in reverse.",
+        "skill_description": "The robot moves backward while executing continuous counter-clockwise yaw rotation and gradual height descent. Phase 0\u20130.25: Backward translation begins, slight yaw left, legs begin compression. Phase 0.25\u20130.5: Yaw increases to 90 degrees, height drops significantly, backward velocity peaks. Phase 0.5\u20130.75: Yaw reaches 180 degrees, height near minimum, legs spread for stability. Phase 0.75\u20131.0: Yaw completes 270\u2013360 degrees, minimal height, backward motion continues. Full cycle traces one helical loop descending.",
+        "think": "Explores three-dimensional trajectory generation coupling backward translation, yaw rotation, and height descent. The helical geometry requires continuous coordination of all three motion components. Useful for learning controlled descent paths and multi-axis motion synthesis. Challenges balance assumptions during continuous height loss."
+    },
+    {
+        "skill_id": "SKILL_TETRAPOD_PADDLE_TURN",
+        "skill_name": "Tetrapod Paddle Turn",
+        "skill_intent": "In-place yaw rotation generated by four-phase paddling where each leg sequentially executes a wide arc sweep.",
+        "skill_description": "Phase 0\u20130.25: FL leg sweeps wide forward-outward arc while other legs anchor, induces rightward yaw. Phase 0.25\u20130.5: FR leg sweeps forward-outward while others anchor, continues rightward yaw. Phase 0.5\u20130.75: RR leg sweeps backward-outward arc, maintains yaw momentum. Phase 0.75\u20131.0: RL leg completes backward-outward sweep, finalizes rotation increment. Each leg acts as a paddle in sequence, creating continuous in-place rotation with minimal translation.",
+        "think": "Uses sequential single-leg paddling to generate pure rotation without translation. Each leg takes a turn as the active paddle while others provide stable anchoring. Explores temporal decoupling of limb roles and rotation generation without simultaneous multi-leg coordination. Useful for learning single-actuator-dominant rotation strategies."
+    },
+    {
+        "skill_id": "SKILL_LUNGE_RECOVER_FORWARD",
+        "skill_name": "Lunge Recover Forward",
+        "skill_intent": "Forward progression through repeated aggressive front lunge and rear leg recovery cycles.",
+        "skill_description": "Phase 0\u20130.3: Front legs extend aggressively forward, base pitches down and lunges ahead, rear legs drag passively. Phase 0.3\u20130.5: Front legs lock extended, rear legs rapidly gather forward beneath base, base pitches up. Phase 0.5\u20130.7: All legs momentarily aligned, base neutral pitch, coasting forward. Phase 0.7\u20131.0: Rear legs push to prepare next lunge, front legs pre-load, cycle repeats. Motion resembles fencing lunge-recover pattern.",
+        "think": "Explores extreme front-rear coordination asymmetry with rapid role switching between aggressive extension and passive recovery. The lunge creates transient pitch oscillation and velocity bursts. Useful for learning explosive extension and rapid recovery coordination. Tests policies on handling large center-of-mass shifts."
+    },
+    {
+        "skill_id": "SKILL_DIAMOND_ROTATE_STEP",
+        "skill_name": "Diamond Rotate Step",
+        "skill_intent": "Forward locomotion where legs trace diamond shapes on the ground while base rotates continuously.",
+        "skill_description": "Each leg traces a diamond-shaped pattern on the ground: starting from center, extending to front vertex, sweeping to side vertex, retracting to rear vertex, returning via opposite side. Phase 0\u20130.25: All legs at front vertices, base yaws 45 degrees clockwise. Phase 0.25\u20130.5: Legs at side vertices, base yaws another 45 degrees. Phase 0.5\u20130.75: Legs at rear vertices, yaw continues. Phase 0.75\u20131.0: Legs at opposite side vertices, completes 180-degree yaw. Net forward motion from diamond geometry while rotating.",
+        "think": "Combines geometric foot trajectory (diamond) with continuous base rotation. The angular vertices of diamonds create discrete contact redirections while yaw rotates smoothly. Explores coupling between sharp foot path geometry and smooth base rotation. Challenges learning of complex foot trajectories with rotation."
+    },
+    {
+        "skill_id": "SKILL_HOURGLASS_EXPANSION_WALK",
+        "skill_name": "Hourglass Expansion Walk",
+        "skill_intent": "Forward walking where leg stance width alternates between narrow and wide, creating hourglass rhythm.",
+        "skill_description": "Phase 0\u20130.2: Legs converge inward toward centerline, stance narrow, base rises slightly, forward motion. Phase 0.2\u20130.4: Legs at minimum width, base at peak height, rapid forward velocity. Phase 0.4\u20130.6: Legs expand outward, stance widens dramatically, base lowers. Phase 0.6\u20130.8: Legs at maximum width, base at minimum height, forward motion continues. Phase 0.8\u20131.0: Legs begin convergence, base rises, cycle repeats. Width oscillation creates visual hourglass pulse.",
+        "think": "Explores rhythmic width modulation coupled with height and velocity oscillation. The hourglass pattern creates alternating stability and mobility phases. Useful for learning width-height-velocity coupling and understanding how stance geometry affects motion dynamics. Limbs actively modulate width while passively supporting forward translation."
+    },
+    {
+        "skill_id": "SKILL_REVERSE_CARTWHEEL_DRIFT",
+        "skill_name": "Reverse Cartwheel Drift",
+        "skill_intent": "Backward lateral locomotion via cartwheel-style rotations where legs trace circular arcs while drifting backward.",
+        "skill_description": "Phase 0\u20130.25: Base rolls right 90 degrees, right legs extend overhead, left legs push off, backward drift initiates. Phase 0.25\u20130.5: Base inverted at 180-degree roll, all legs extended, backward velocity peaks. Phase 0.5\u20130.75: Base rolls to 270 degrees, left legs overhead, right legs contact ground. Phase 0.75\u20131.0: Base completes 360-degree roll, returns upright, backward drift continues. Multiple cycles create continuous backward cartwheel motion.",
+        "think": "Combines aerial cartwheel rotation with backward translation, creating complex 3D trajectory. The roll-translation coupling requires precise phase timing to maintain backward drift direction. Explores inverted kinematic configurations and continuous roll during locomotion. Challenges policies on maintaining directional control during full-body rotation."
+    },
+    {
+        "skill_id": "SKILL_STARFISH_PULSE_TURN",
+        "skill_name": "Starfish Pulse Turn",
+        "skill_intent": "In-place yaw rotation using synchronized radial pulsing of all legs like a starfish contracting and expanding.",
+        "skill_description": "Phase 0\u20130.3: All legs extend radially outward to maximum reach, tips trace circular arcs clockwise, base yaws clockwise. Phase 0.3\u20130.5: Legs hold extended position, yaw velocity peaks, base spins rapidly. Phase 0.5\u20130.8: All legs retract radially inward toward body, yaw continues with momentum. Phase 0.8\u20131.0: Legs fully retracted, base height rises slightly, yaw decelerates before next expansion. The pulsing creates visual rhythm synced with rotation rate.",
+        "think": "Uses synchronized radial leg motion to generate and modulate in-place rotation. The expansion-contraction cycle affects rotational inertia and creates pulsed yaw velocity. Explores radial symmetry in rotation generation and coupling between leg reach and angular velocity. Starfish metaphor captures the symmetric pulsing behavior."
+    },
+    {
+        "skill_id": "SKILL_OBLIQUE_WAVE_CRAWL",
+        "skill_name": "Oblique Wave Crawl",
+        "skill_intent": "Forward-diagonal locomotion driven by body wave propagating at 45-degree angle to longitudinal axis.",
+        "skill_description": "A lateral undulation wave propagates from rear-left to front-right at 45 degrees. Phase 0\u20130.25: RL initiates wave, body curves left-rear, diagonal motion begins toward front-right. Phase 0.25\u20130.5: Wave reaches mid-body, both left and right legs coordinate to maintain diagonal trajectory. Phase 0.5\u20130.75: Wave peaks at FR, body curves right-front, diagonal velocity peaks. Phase 0.75\u20131.0: Wave completes, body straightens, legs reset for next wave. Base maintains low height with continuous diagonal glide.",
+        "think": "Explores oblique wave propagation where the wave axis is neither purely lateral nor longitudinal. The 45-degree angle creates diagonal translation without explicit lateral stepping. Useful for learning arbitrary wave orientation and its effect on locomotion direction. Breaks assumption of axis-aligned wave propagation."
+    },
+    {
+        "skill_id": "SKILL_TRIPOD_TILT_WALK",
+        "skill_name": "Tripod Tilt Walk",
+        "skill_intent": "Forward locomotion alternating between two tripod stances with exaggerated roll tilt in each stance.",
+        "skill_description": "Phase 0\u20130.2: FL, RR, and RL form tripod stance, base tilts heavily left, right legs lift high. Phase 0.2\u20130.4: Base tilts right while transitioning, FR and both left legs prepare to contact. Phase 0.4\u20130.6: FR, RL, and RR form new tripod, base tilts heavily right, left legs lift high. Phase 0.6\u20130.8: Base tilts left during transition, returning to first tripod configuration. Phase 0.8\u20131.0: First tripod re-established, base levels briefly before next cycle. Exaggerated tilting creates distinctive rocking motion.",
+        "think": "Combines tripod gait structure with extreme roll oscillation, creating visually distinctive rocking walk. The tilt amplification explores stability boundaries and challenges balance assumptions. Useful for learning to coordinate stance switching with large orientation changes. Tests policies on maintaining forward motion during dramatic roll."
+    },
+    {
+        "skill_id": "SKILL_CRESCENDO_STRIDE",
+        "skill_name": "Crescendo Stride",
+        "skill_intent": "Forward locomotion where stride length and frequency gradually increase within each cycle, then reset.",
+        "skill_description": "Phase 0\u20130.2: Small, slow forward steps with legs barely lifting, minimal forward velocity. Phase 0.2\u20130.4: Stride length increases 50%, step frequency rises, velocity ramps up. Phase 0.4\u20130.6: Stride at 75% maximum, frequency peaks, rapid forward progression. Phase 0.6\u20130.8: Maximum stride length and frequency, peak velocity achieved. Phase 0.8\u20131.0: Sudden deceleration, stride collapses back to minimal length and frequency, cycle resets. Creates musical crescendo-decrescendo effect.",
+        "think": "Explores continuous modulation of stride parameters within a single cycle. The gradual build-up and sudden reset create non-uniform velocity profile. Useful for learning time-varying gait parameters and smooth acceleration-deceleration transitions. The crescendo pattern challenges policies to adapt stride continuously rather than maintaining steady gait."
+    },
+    {
+        "skill_id": "SKILL_PROPELLER_SPIN_ADVANCE",
+        "skill_name": "Propeller Spin Advance",
+        "skill_intent": "Forward locomotion where legs rotate in propeller-like circles perpendicular to body, generating forward thrust through continuous rotation.",
+        "skill_description": "All four legs rotate continuously in vertical circles perpendicular to the body axis. Phase 0\u20130.25: Front legs at top of rotation circle, rear legs at bottom, base pitches slightly down, forward motion. Phase 0.25\u20130.5: Front legs descending, rear legs ascending, base levels. Phase 0.5\u20130.75: Front legs at bottom, rear legs at top, base pitches slightly up. Phase 0.75\u20131.0: Legs return to starting positions, base levels, forward velocity maintained throughout. Rotation is synchronized across all legs like a four-blade propeller.",
+        "think": "Uses continuous circular leg motion in vertical plane to generate forward translation, mimicking propeller mechanics kinematically. Explores non-traditional leg trajectories where legs never stop moving. Useful for learning continuous rotation coordination and understanding how circular motion can generate linear translation. Wheel interpretation: legs as rotating wheels in vertical plane."
+    },
+    {
+        "skill_id": "SKILL_LATERAL_COIL_SPIN",
+        "skill_name": "Lateral Coil Spin",
+        "skill_intent": "In-place yaw rotation where body coils tighter with each rotation increment, legs spiraling inward.",
+        "skill_description": "Phase 0\u20130.25: Base yaws 90 degrees clockwise, legs at normal extension, wide stance. Phase 0.25\u20130.5: Base yaws to 180 degrees, legs retract 30%, stance narrows. Phase 0.5\u20130.75: Base yaws to 270 degrees, legs retract 60%, tight stance, base rises. Phase 0.75\u20131.0: Base completes 360 degrees, legs fully retracted near body centerline, maximum height and spin rate. Next cycle can reverse uncoiling or continue coiling tighter.",
+        "think": "Couples continuous yaw rotation with progressive leg retraction, creating coiling spring visual. The narrowing stance modulates rotational inertia and creates accelerating spin appearance. Explores how stance geometry affects rotation dynamics kinematically. Useful for learning coordinated retraction-rotation coupling and understanding geometric effects on rotation."
+    },
+    {
+        "skill_id": "SKILL_SIDESTEP_CASCADE",
+        "skill_name": "Sidestep Cascade",
+        "skill_intent": "Lateral locomotion using cascading sidesteps where leg movements propagate in wave from front to rear.",
+        "skill_description": "Phase 0\u20130.2: FL leg steps laterally right, initiates rightward motion. Phase 0.2\u20130.4: FR leg follows with lateral step right, motion continues. Phase 0.4\u20130.6: RL leg executes lateral step, cascade wave propagates rearward. Phase 0.6\u20130.8: RR leg completes cascade with lateral step. Phase 0.8\u20131.0: All legs reset briefly before next cascade wave. The sequential timing creates visible front-to-rear wave of lateral steps.",
+        "think": "Explores sequential rather than synchronized lateral stepping, creating temporal wave pattern. The cascade timing generates smooth lateral velocity while maintaining visual wave propagation. Useful for learning sequential coordination and understanding how timing affects motion smoothness. Different from synchronized lateral motion, emphasizes temporal structure."
+    },
+    {
+        "skill_id": "SKILL_REVERSE_SWIZZLE_SKATE",
+        "skill_name": "Reverse Swizzle Skate",
+        "skill_intent": "Backward locomotion using synchronized outward-inward leg swizzling motion like reverse ice skating.",
+        "skill_description": "Phase 0\u20130.3: All legs start together near centerline, base moves backward slowly. Phase 0.3\u20130.6: Legs push outward in synchronized arcs, widening stance, backward velocity increases. Phase 0.6\u20130.8: Legs at maximum outward extension, wide stance, peak backward velocity. Phase 0.8\u20131.0: Legs pull inward back to centerline in smooth arcs, backward drift continues, cycle resets. The swizzling creates continuous backward glide without discrete steps.",
+        "think": "Applies swizzle skating mechanics to backward locomotion, creating smooth backward glide through synchronized leg arcs. Explores radial leg coordination for backward propulsion. Useful for learning backward motion generation without traditional stepping and understanding how synchronized radial motion creates translation. Hybrid interpretation: legs as passive skates with active arc control."
+    },
+    {
+        "skill_id": "SKILL_PHOENIX_RISE_SPIN",
+        "skill_name": "Phoenix Rise Spin",
+        "skill_intent": "Dramatic rising motion from low crouch to maximum height while executing full 360-degree yaw rotation with wings-spread leg gesture.",
+        "skill_description": "Phase 0\u20130.2: Base at minimum height, legs fully compressed beneath body, no rotation. Phase 0.2\u20130.4: Base begins rising, legs start extending outward and upward, yaw initiates. Phase 0.4\u20130.6: Base at 50% height, legs half-extended like spreading wings, yaw at 180 degrees. Phase 0.6\u20130.8: Base reaches maximum height, legs fully extended outward and upward, yaw continues. Phase 0.8\u20131.0: Base holds peak height, legs at maximum spread, yaw completes 360 degrees. Creates phoenix-rising visual metaphor.",
+        "think": "Combines vertical height transition with full rotation and dramatic limb extension, creating theatrical rising gesture. Explores three-way coupling of height, yaw, and radial leg extension. Useful for learning coordinated multi-axis motion with large range of motion. The phoenix metaphor captures the dramatic transformation from compressed to fully extended state during rotation."
+    },
+    {
+        "skill_id": "SKILL_CORKSCREW_DRIFT",
+        "skill_name": "Corkscrew Drift",
+        "skill_intent": "Spiral forward motion combining continuous yaw rotation with lateral drift.",
+        "skill_description": "The base rotates continuously in yaw while drifting laterally and advancing forward, tracing a corkscrew path. Phase 0\u20130.25: base yaws clockwise while drifting right, front legs extend outward, rear legs tuck inward. Phase 0.25\u20130.5: yaw continues, drift reverses leftward, leg roles switch. Phase 0.5\u20130.75: yaw rate peaks, legs synchronize in circular paddling motion. Phase 0.75\u20131: yaw completes full rotation, legs return to neutral as drift stabilizes.",
+        "think": "This skill couples three-axis motion: forward translation, lateral drift, and yaw rotation. Phase modulates the drift direction and leg extension patterns to maintain the spiral trajectory. Limbs act as passive stabilizers and steering elements rather than discrete step generators. Valuable for learning coordinated multi-axis motion where orientation and translation are tightly coupled."
+    },
+    {
+        "skill_id": "SKILL_LATERAL_WAVE_SLIDE",
+        "skill_name": "Lateral Wave Slide",
+        "skill_intent": "Pure sideways locomotion using body wave propagation without forward or backward motion.",
+        "skill_description": "The robot moves laterally by propagating a sinusoidal wave along its body axis while keeping all legs in sliding contact. Phase 0\u20130.3: wave crest at rear, left legs extend, right legs compress. Phase 0.3\u20130.6: wave propagates forward, legs alternate compression/extension. Phase 0.6\u20131: wave crest reaches front, roles reverse smoothly. Base maintains forward orientation while translating purely sideways.",
+        "think": "This explores lateral-only locomotion through body wave mechanics, decoupling heading from travel direction. Phase controls wave propagation timing, creating coordinated limb compression patterns. Challenges typical forward-biased locomotion assumptions, useful for omnidirectional motion learning where translation and orientation are independent."
+    },
+    {
+        "skill_id": "SKILL_STUTTER_STEP_ADVANCE",
+        "skill_name": "Stutter Step Advance",
+        "skill_intent": "Forward motion with rapid start-stop rhythm creating jerky, pulsed progression.",
+        "skill_description": "The robot advances through discrete pulses with brief pauses. Phase 0\u20130.15: rapid base acceleration forward, all legs extend simultaneously. Phase 0.15\u20130.3: abrupt halt, legs lock, base settles. Phase 0.3\u20130.45: second pulse, diagonal leg pairs (FL-RR) drive. Phase 0.45\u20130.6: pause with base pitch oscillation. Phase 0.6\u20130.8: third pulse, opposite diagonal (FR-RL) drives. Phase 0.8\u20131: final pause and stabilization.",
+        "think": "This skill explores non-smooth locomotion with intentional discontinuities in velocity profile. Phase creates rhythmic start-stop patterns requiring rapid limb coordination changes. Useful for learning transient dynamics, momentum management, and motion that violates smoothness assumptions common in standard gaits."
+    },
+    {
+        "skill_id": "SKILL_BARREL_ROLL_TRANSLATE",
+        "skill_name": "Barrel Roll Translation",
+        "skill_intent": "Forward translation while executing continuous barrel roll about the longitudinal axis.",
+        "skill_description": "The base advances forward while performing a smooth 360-degree roll rotation. Phase 0\u20130.25: base tilts right, right legs lift and sweep overhead arc. Phase 0.25\u20130.5: base inverted, all legs tucked close. Phase 0.5\u20130.75: base tilts left, left legs complete arc. Phase 0.75\u20131: base returns upright, legs extend to ground contact. Forward velocity maintained throughout via base translation.",
+        "think": "This couples roll rotation with forward translation, requiring limbs to transition between ground contact, aerial arc sweeps, and tucked positions. Phase synchronizes roll angle with limb configuration. Tests ability to maintain directional motion during full-body rotation, valuable for understanding motion where orientation and translation operate in different reference frames."
+    },
+    {
+        "skill_id": "SKILL_DIAGONAL_SCISSORS_GLIDE",
+        "skill_name": "Diagonal Scissors Glide",
+        "skill_intent": "Diagonal locomotion using alternating scissor-like leg crossovers.",
+        "skill_description": "The robot travels diagonally forward-right through scissoring leg motions. Phase 0\u20130.2: FL and RR extend diagonally outward while FR and RL cross inward. Phase 0.2\u20130.4: crossed legs push to generate diagonal impulse. Phase 0.4\u20130.6: legs transition, base glides on momentum. Phase 0.6\u20130.8: roles reverse, FR and RL extend outward, FL and RR cross inward. Phase 0.8\u20131: second push and glide phase completion.",
+        "think": "This explores diagonal locomotion through limb crossing patterns that create lateral and forward components simultaneously. Phase alternates which diagonal pair crosses versus extends. Scissoring motion generates propulsion through coordinated convergence-divergence, distinct from parallel leg motion. Useful for learning crossover coordination and diagonal travel strategies."
+    },
+    {
+        "skill_id": "SKILL_PIVOT_SPIRAL_INWARD",
+        "skill_name": "Inward Pivot Spiral",
+        "skill_intent": "Tight circular motion where radius decreases continuously while maintaining rotation.",
+        "skill_description": "The robot executes a circular path with continuously decreasing radius, spiraling inward toward a center point. Phase 0\u20130.3: wide arc, outer legs (right side) extend far, inner legs compact. Phase 0.3\u20130.6: radius tightens, outer legs retract progressively, yaw rate increases. Phase 0.6\u20130.9: tight spiral, inner legs near-stationary pivot point, outer legs rapid arc. Phase 0.9\u20131: spiral tightest, base nearly spinning in place.",
+        "think": "This skill modulates turning radius continuously through phase, creating non-constant curvature trajectory. Limb extension asymmetry increases with tighter radius, requiring dynamic coordination scaling. Tests ability to handle variable-curvature paths and transitions from wide arcs to near-pivots, valuable for navigation in constrained spaces."
+    },
+    {
+        "skill_id": "SKILL_REVERSE_MOONWALK",
+        "skill_name": "Reverse Moonwalk",
+        "skill_intent": "Backward translation while legs perform forward-sliding motion creating illusion of walking forward.",
+        "skill_description": "The base translates backward steadily while legs execute forward-directed sliding cycles. Phase 0\u20130.25: FL and RR slide forward relative to base while maintaining ground contact. Phase 0.25\u20130.5: legs transition back to neutral under base. Phase 0.5\u20130.75: FR and RL slide forward in same manner. Phase 0.75\u20131: return to neutral. Net effect is backward body motion with forward leg appearance.",
+        "think": "This decouples limb motion direction from body travel direction, creating kinematic illusion. Phase coordinates which diagonal pair performs forward slide while base moves backward. Challenges assumptions that limb and body motion must align, useful for learning counter-intuitive coordination where visual and translational motion oppose."
+    },
+    {
+        "skill_id": "SKILL_PENDULUM_ROCK_ADVANCE",
+        "skill_name": "Pendulum Rock Advance",
+        "skill_intent": "Forward progression through side-to-side pendulum rocking with phase-locked leg sweeps.",
+        "skill_description": "The base rocks laterally like an inverted pendulum while advancing forward. Phase 0\u20130.2: base rolls left, right legs extend and sweep forward. Phase 0.2\u20130.4: base transitions through center, all legs neutral. Phase 0.4\u20130.6: base rolls right, left legs extend and sweep forward. Phase 0.6\u20130.8: center transition. Phase 0.8\u20131: cycle completes with slight forward displacement per rock.",
+        "think": "This couples lateral roll oscillation with forward leg sweeps timed to pendulum phase. Rock provides momentum for leg advancement, while leg placement stabilizes rock. Phase synchronizes roll angle with limb extension, creating energy-efficient forward motion from side-to-side dynamics. Useful for learning coupled oscillatory systems."
+    },
+    {
+        "skill_id": "SKILL_CARTWHEEL_SIDE_TRAVEL",
+        "skill_name": "Cartwheel Side Travel",
+        "skill_intent": "Lateral locomotion via cartwheel-style rotations with legs tracing circular arcs.",
+        "skill_description": "The robot travels sideways by performing cartwheel rotations. Phase 0\u20130.25: base tilts right, right legs plant as pivot, left legs lift overhead. Phase 0.25\u20130.5: base inverts rolling over right side, legs trace circular paths. Phase 0.5\u20130.75: left legs contact ground, right legs lift to complete rotation. Phase 0.75\u20131: base returns upright, net lateral displacement achieved.",
+        "think": "This uses full-body roll rotation to achieve lateral translation, requiring legs to alternate between pivot support and aerial arcs. Phase controls rotation angle and limb sequencing. Distinct from walking or sliding by using rotation as primary locomotion mechanism. Tests ability to coordinate complex spatial trajectories where limbs trace large circular paths."
+    },
+    {
+        "skill_id": "SKILL_ZIGZAG_WEAVE",
+        "skill_name": "Zigzag Weave",
+        "skill_intent": "Sharp alternating lateral cuts while maintaining forward progression.",
+        "skill_description": "The robot advances forward with rapid side-to-side direction changes. Phase 0\u20130.2: sharp yaw and lateral cut right, left legs push outward, right legs tuck. Phase 0.2\u20130.3: brief straight segment. Phase 0.3\u20130.5: sharp cut left, roles reverse. Phase 0.5\u20130.6: straight segment. Phase 0.6\u20130.8: cut right again with increased amplitude. Phase 0.8\u20131: final straight and stabilization.",
+        "think": "This explores rapid direction change sequences with alternating lateral forces. Phase controls cut timing and sharpness, creating zigzag trajectory. Legs alternate between pushing laterally and tucking for clearance. Valuable for learning agile direction changes, testing responsiveness to rapid trajectory modifications and asymmetric limb loading."
+    },
+    {
+        "skill_id": "SKILL_INCHWORM_COMPRESSION",
+        "skill_name": "Inchworm Compression",
+        "skill_intent": "Forward motion through alternating full-body compression and extension cycles.",
+        "skill_description": "The robot advances by compressing and extending like an inchworm. Phase 0\u20130.3: rear legs advance toward front while base lowers and compresses. Phase 0.3\u20130.5: compressed position held, base near ground. Phase 0.5\u20130.8: front legs extend forward, base elongates, rear legs stationary. Phase 0.8\u20131: extended position held briefly before next cycle.",
+        "think": "This uses axial compression-extension as primary locomotion mechanism rather than limb cycling. Phase controls compression ratio and which end advances. Creates large base length variation and height modulation. Tests ability to coordinate dramatic body configuration changes while maintaining forward progress, useful for learning non-standard propulsion strategies."
+    },
+    {
+        "skill_id": "SKILL_TORNADO_SPIN_DRIFT",
+        "skill_name": "Tornado Spin Drift",
+        "skill_intent": "Rapid in-place yaw spinning with expanding and contracting limb radius creating tornado-like appearance.",
+        "skill_description": "The base spins rapidly in yaw while limbs modulate their radial extension. Phase 0\u20130.25: spin starts, legs extended wide. Phase 0.25\u20130.5: spin accelerates, legs retract toward body. Phase 0.5\u20130.75: maximum spin rate, legs fully tucked. Phase 0.75\u20131: spin decelerates, legs extend wide again. Slight outward drift occurs due to centrifugal-like trajectory.",
+        "think": "This couples yaw rotation rate with limb radial position, creating variable moment-like appearance. Phase modulates both spin velocity and leg extension to create visual acceleration effect. Tests coordination of rotational motion with synchronized radial limb control, valuable for learning dynamic spins with configuration-dependent characteristics."
+    },
+    {
+        "skill_id": "SKILL_BACKSTROKE_CRAWL",
+        "skill_name": "Backstroke Crawl",
+        "skill_intent": "Backward locomotion using alternating circular leg sweeps resembling swimming backstroke.",
+        "skill_description": "The robot moves backward with legs performing circular backstroke-like motions. Phase 0\u20130.25: FL sweeps in large backward arc overhead to rear. Phase 0.25\u20130.5: FL completes arc and pushes, FR begins sweep. Phase 0.5\u20130.75: RR sweeps backward arc. Phase 0.75\u20131: RL completes the pattern. Base translates backward smoothly throughout.",
+        "think": "This applies swimming-inspired circular limb trajectories to terrestrial backward motion. Phase staggers leg sweeps in alternating pattern creating continuous propulsion. Legs trace large circular paths rather than linear swings. Useful for learning cyclic but non-standard limb coordination where trajectories are curved and propulsion is continuous rather than impulsive."
+    },
+    {
+        "skill_id": "SKILL_WINDMILL_ROTATION_WALK",
+        "skill_name": "Windmill Rotation Walk",
+        "skill_intent": "Forward walking where legs rotate in windmill pattern perpendicular to body axis.",
+        "skill_description": "The robot advances forward while legs rotate in vertical circular patterns like windmill blades. Phase 0\u20130.25: right side legs rotate forward-up. Phase 0.25\u20130.5: right legs reach top, begin descending, left legs start ascending. Phase 0.5\u20130.75: left legs at top, right legs contact ground and push. Phase 0.75\u20131: left legs descend and push, right legs lift for next rotation.",
+        "think": "This explores locomotion where limbs trace complete vertical circles rather than elliptical swing-stance patterns. Phase controls rotation angle and contact timing. Creates visually distinct motion resembling paddle-wheel but with vertical orientation. Tests ability to coordinate continuous circular limb motion with intermittent ground contact for propulsion."
+    },
+    {
+        "skill_id": "SKILL_FIGURE_EIGHT_WEAVE",
+        "skill_name": "Figure Eight Weave",
+        "skill_intent": "Continuous figure-eight ground trajectory with coordinated lean and leg sweeping.",
+        "skill_description": "The robot traces a figure-eight pattern on the ground. Phase 0\u20130.25: tight right turn forming first loop, right legs compress, left legs extend. Phase 0.25\u20130.5: transition through center crossing, legs equalize. Phase 0.5\u20130.75: tight left turn forming second loop, left legs compress, right legs extend. Phase 0.75\u20131: center crossing return, base orientation modulates to maintain pattern.",
+        "think": "This creates complex closed-curve trajectory requiring continuous curvature sign changes. Phase controls which loop is being traced and coordinates asymmetric leg extensions. Center crossings require rapid limb role transitions. Valuable for learning sophisticated path following with smooth curvature reversals and coordinated lean management."
+    },
+    {
+        "skill_id": "SKILL_POGO_BOUNCE_FORWARD",
+        "skill_name": "Pogo Bounce Forward",
+        "skill_intent": "Forward hopping with all legs synchronously bouncing and base maintaining vertical oscillation.",
+        "skill_description": "The robot advances through synchronized bouncing. Phase 0\u20130.2: all legs compress, base lowers. Phase 0.2\u20130.4: explosive extension, base rises, brief aerial phase. Phase 0.4\u20130.6: peak height, legs tucked, forward displacement continues. Phase 0.6\u20130.8: descent begins, legs extend for landing. Phase 0.8\u20131: landing absorption, legs compress preparing for next bounce.",
+        "think": "This synchronizes all four limbs for unified bounce cycles creating pogo-stick-like motion. Phase controls compression-extension timing and aerial trajectory. Base maintains significant vertical oscillation while achieving forward translation. Tests ability to coordinate symmetric four-limb hopping with consistent aerial phases, useful for rhythmic ballistic motion patterns."
+    },
+    {
+        "skill_id": "SKILL_CRAB_DIAGONAL_SCUTTLE",
+        "skill_name": "Crab Diagonal Scuttle",
+        "skill_intent": "Rapid diagonal locomotion with body oriented perpendicular to travel direction.",
+        "skill_description": "The robot scuttles diagonally with body axis perpendicular to travel vector. Phase 0\u20130.3: front legs sweep toward rear, rear legs sweep toward front, creating diagonal forward-right motion. Phase 0.3\u20130.5: legs reset rapidly. Phase 0.5\u20130.8: second scuttle with increased amplitude. Phase 0.8\u20131: brief glide and stabilization. Base maintains sideways orientation throughout.",
+        "think": "This decouples body orientation from travel direction, creating crab-like diagonal motion. Phase coordinates cross-body leg sweeps where front and rear act in opposition. Orientation remains perpendicular to velocity vector. Valuable for learning motion where heading and travel direction differ significantly, testing omnidirectional control strategies."
+    },
+    {
+        "skill_id": "SKILL_RISING_SPIRAL_JUMP",
+        "skill_name": "Rising Spiral Jump",
+        "skill_intent": "Vertical jump with simultaneous yaw rotation and expanding limb spiral pattern.",
+        "skill_description": "The robot jumps vertically while rotating in yaw and extending legs in spiral pattern. Phase 0\u20130.2: legs compress, prepare for jump. Phase 0.2\u20130.4: explosive extension launches base upward, yaw rotation begins. Phase 0.4\u20130.6: aerial phase, legs extend spirally outward in sequence (FL, FR, RR, RL) while yaw continues. Phase 0.6\u20130.8: peak height, legs fully extended in spiral. Phase 0.8\u20131: descent and landing with leg retraction.",
+        "think": "This combines vertical jump with yaw rotation and sequential leg extension creating three-dimensional spiral aesthetic. Phase coordinates launch timing, rotation rate, and spiral propagation through limbs. Tests ability to manage complex aerial coordination where vertical motion, rotation, and limb sequencing all evolve simultaneously."
+    },
+    {
+        "skill_id": "SKILL_SLALOM_SNAKE_GLIDE",
+        "skill_name": "Slalom Snake Glide",
+        "skill_intent": "Forward gliding with continuous sinusoidal body curvature creating snake-like slalom path.",
+        "skill_description": "The robot glides forward while body traces sinusoidal lateral curvature. Phase 0\u20130.25: body curves right, right legs trail, left legs lead. Phase 0.25\u20130.5: body straightens through neutral. Phase 0.5\u20130.75: body curves left, left legs trail, right legs lead. Phase 0.75\u20131: return through neutral. Base follows smooth sinusoidal ground path while advancing.",
+        "think": "This creates serpentine forward motion through continuous body curvature modulation. Phase controls lateral curvature amplitude and direction, with legs adjusting roles based on curve position. Distinct from discrete turning by maintaining smooth sinusoidal trajectory. Useful for learning continuous path following with body shape variations and fluid leg role transitions."
+    },
+    {
+        "skill_id": "SKILL_HELICOPTER_ASCEND_SPIN",
+        "skill_name": "Helicopter Ascend Spin",
+        "skill_intent": "Rising vertical motion with rapid yaw spin and legs extended horizontally like rotor blades.",
+        "skill_description": "The base rises vertically while spinning rapidly in yaw with legs extended horizontally. Phase 0\u20130.3: legs extend outward horizontally, yaw spin initiates, base begins rising. Phase 0.3\u20130.6: spin rate peaks, legs maintain horizontal rotor configuration, continued ascent. Phase 0.6\u20130.9: spin sustained, peak height reached. Phase 0.9\u20131: spin decelerates, legs begin retracting, descent preparation.",
+        "think": "This couples vertical translation with rapid yaw rotation and horizontal leg extension creating helicopter-like appearance. Phase modulates vertical position, spin rate, and leg extension simultaneously. Tests ability to coordinate three independent motion components into unified skill, valuable for learning aerial-style maneuvers with fixed configuration maintenance during rotation."
+    }
+]

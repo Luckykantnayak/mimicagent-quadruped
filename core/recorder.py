@@ -30,6 +30,7 @@ class MimicKitRecorder:
         joints = state["joints"]
 
         frame = np.concatenate([pos, exp, joints])
+
         self.frames.append(frame)
 
     def save(self, path):

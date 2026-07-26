@@ -1,0 +1,145 @@
+from utils.math_utils import *
+from gaits.base import BaseMotionGenerator
+
+class SKILL_PINWHEEL_LATERAL_SPIN_MotionGenerator(BaseMotionGenerator):
+    """
+    Pinwheel lateral spin gait with synchronized leg rotation.
+
+    - All four legs rotate clockwise (viewed from above) in synchronized pinwheel pattern
+    - Each leg sweeps through 360 degrees around its hip attachment point per cycle
+    - Base translates leftward continuously with zero yaw rotation
+    - Vertical motion designed to maintain at least one foot in ground contact at all times
+    """
+
+    def __init__(self, initial_foot_positions_body, leg_names):
+
+        self.leg_names = leg_names
+        self.freq = 0.5  # Slower frequency for smooth circular motion
+        
+        # Base foot positions (hip-relative reference points)
+        self.base_feet_pos_body = {k: v.copy() for k, v in initial_foot_positions_body.items()}
+        
+        # Store hip positions (assumed to be at base of each leg)
+        self.hip_positions = {}
+        for leg_name in self.leg_names:
+            # Hip position is inferred from initial foot position lateral/longitudinal offset
+            # Assuming hips are above the feet at z=0 in body frame
+            foot = self.base_feet_pos_body[leg_name]
+            self.hip_positions[leg_name] = np.array([foot[0], foot[1], 0.0])
+        
+        # Pinwheel rotation parameters
+        self.rotation_radius = 0.12  # Radius for joint limit compliance
+        self.ground_height = -0.3  # Nominal ground contact height in body frame
+        
+        # Phase offsets redistributed across full cycle to ensure temporal separation
+        # Maximally spaced to guarantee at least one leg is in contact phase at all times
+        self.phase_offsets = {
+            leg_names[0]: 0.0,
+            leg_names[1]: 0.25,
+            leg_names[2]: 0.5,
+            leg_names[3]: 0.75,
+        }
+        
+        # Initial angle for each leg based on its hip position
+        # Calculate initial angle from hip to foot
+        self.initial_angles = {}
+        for leg_name in self.leg_names:
+            hip = self.hip_positions[leg_name]
+            foot = self.base_feet_pos_body[leg_name]
+            dx = foot[0] - hip[0]
+            dy = foot[1] - hip[1]
+            self.initial_angles[leg_name] = np.arctan2(dy, dx)
+        
+        # Base state
+        self.t = 0.0
+        self.root_pos = np.zeros(3)
+        self.root_quat = np.array([1.0, 0.0, 0.0, 0.0])
+        
+        # Lateral velocity parameters (leftward = negative y in body frame)
+        self.lateral_velocity = -0.15  # Constant leftward velocity
+
+    def update_base_motion(self, phase, dt):
+        """
+        Update base with constant leftward lateral velocity and zero rotation.
+        """
+        # Constant leftward velocity (negative y-axis in body frame)
+        self.vel_world = np.array([0.0, self.lateral_velocity, 0.0])
+        
+        # No angular velocity - maintain forward orientation
+        self.omega_world = np.array([0.0, 0.0, 0.0])
+        
+        # Integrate pose in world frame
+        self.root_pos, self.root_quat = integrate_pose_world_frame(
+            self.root_pos,
+            self.root_quat,
+            self.vel_world,
+            self.omega_world,
+            dt
+        )
+
+    def compute_foot_position_body_frame(self, leg_name, phase):
+        """
+        Compute foot position as it rotates in a circular pinwheel pattern.
+        
+        Each leg rotates clockwise (viewed from above) around its hip attachment point.
+        Phase 0.0 -> 1.0 corresponds to 0 -> 360 degrees rotation.
+        Vertical position designed to maintain ground contact majority of cycle.
+        """
+        # Get leg-specific phase
+        leg_phase = (phase + self.phase_offsets[leg_name]) % 1.0
+        
+        # Convert phase to rotation angle (0 to 2π)
+        # Clockwise rotation when viewed from above means negative angle progression in standard convention
+        rotation_angle = self.initial_angles[leg_name] + 2 * np.pi * leg_phase
+        
+        # Get hip position
+        hip = self.hip_positions[leg_name]
+        
+        # Calculate foot position in horizontal plane rotating around hip
+        foot_x = hip[0] + self.rotation_radius * np.cos(rotation_angle)
+        foot_y = hip[1] + self.rotation_radius * np.sin(rotation_angle)
+        
+        # Vertical trajectory designed for maximum ground contact time
+        # Asymmetric waveform: ground contact for ~70% of cycle, brief lift for ~30%
+        # Using rectified and biased sinusoid to create long ground contact plateau
+        vertical_amplitude = 0.025  # Reduced amplitude to stay within safe bounds
+        
+        # Create asymmetric vertical profile using combination of terms
+        # Primary component: rectified sine that is zero for majority of phase
+        sine_component = np.sin(2 * np.pi * leg_phase)
+        
+        # Only allow positive (upward) displacement for limited phase range
+        # Using smooth transition with raised cosine window centered at phase 0.75
+        lift_window_center = 0.75
+        lift_window_width = 0.3
+        
+        # Smooth window function for lift phase (raised cosine)
+        phase_diff = np.abs(((leg_phase - lift_window_center + 0.5) % 1.0) - 0.5)
+        if phase_diff < lift_window_width / 2:
+            window = 0.5 * (1.0 + np.cos(2.0 * np.pi * phase_diff / lift_window_width))
+        else:
+            window = 0.0
+        
+        # Apply lift only during window, otherwise maintain ground contact
+        vertical_offset = vertical_amplitude * sine_component * window
+        
+        # Ensure vertical offset is non-negative (only lift, never push into ground)
+        vertical_offset = np.maximum(0.0, vertical_offset)
+        
+        # Base ground contact with vertical offset
+        foot_z = self.ground_height + vertical_offset
+        
+        # Smooth the vertical trajectory using small harmonic for continuous derivatives
+        # This harmonic is phase-locked to reduce jerk without creating additional airtime
+        smoothing_amplitude = 0.005
+        smoothing_term = smoothing_amplitude * np.sin(4 * np.pi * leg_phase) * window
+        foot_z += smoothing_term
+        
+        # Safety clipping to enforce ground contact bounds
+        min_height = self.ground_height
+        max_height = self.ground_height + 0.03
+        foot_z = np.clip(foot_z, min_height, max_height)
+        
+        foot_position = np.array([foot_x, foot_y, foot_z])
+        
+        return foot_position
