@@ -1,0 +1,44 @@
+# robots/unitree_go2w.yaml
+# Unitree Go2W (wheeled quadruped)
+# Leg naming in XML: FL / FR / RL / RR  (already canonical — no remapping needed)
+
+name: unitree_go2w
+scene_xml: assets/robots/unitree_go2w/scene.xml
+base_body: base_link
+
+# IK target bodies
+calf_bodies:
+  - FL_calf
+  - FR_calf
+  - RL_calf
+  - RR_calf
+
+# Foot tip sites
+foot_sites:
+  - FL_foot
+  - FR_foot
+  - RL_foot
+  - RR_foot
+
+# All actuated joints
+joint_names:
+  - FL_hip_joint
+  - FL_thigh_joint
+  - FL_calf_joint
+  - FR_hip_joint
+  - FR_thigh_joint
+  - FR_calf_joint
+  - RL_hip_joint
+  - RL_thigh_joint
+  - RL_calf_joint
+  - RR_hip_joint
+  - RR_thigh_joint
+  - RR_calf_joint
+
+leg_order:
+  - FL
+  - FR
+  - RL
+  - RR
+
+wheel_radius: 0.1040071605

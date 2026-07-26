@@ -3,11 +3,12 @@ __pycache__/
 *.py[codz]
 *$py.class
 
-# Custom Ignores — ignore generated data, but keep the bundled input skill library
-/data/*
-!/data/skills/
-/data/skills/*
-!/data/skills/skills_v1/
+# Custom Ignores — generated run artifacts. The generated skill CODE under
+# skill_output/<robot>/<skill>/ stays tracked; only the run outputs are ignored.
+/skill_output/*/trajectories/
+/skill_output/*/motion_plans/
+/skill_output/*/results/
+/skill_output/*/metadata/
 extras
 
 
@@ -215,7 +216,7 @@ marimo/_lsp/
 __marimo__/
 
 # Combined codebase: generated artifacts
-mimic_agent/data/
+agent/data/
 *.pkl
 graph_coder.png
 graph_skill_gen.png

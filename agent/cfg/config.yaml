@@ -1,0 +1,32 @@
+dataset:
+  total_skills: 100
+  skills_per_generation: 20
+
+llm:
+  model: claude-sonnet-4-5-20250929
+  temperature: 1.0
+  max_tokens: 16000
+
+robot:
+  name: go2w                                  # selects prompts/<name>/ (NOT the simulator
+                                              # robot — that comes from simulator/config.yaml)
+  urdf: ../assets/robots/unitree_go2w/go2w.xml
+
+paths:
+  prompts_dir: prompts
+  data_output_dir: ../skill_output/unitree_go2w
+  # NOTE: skill_output_dir is the INPUT skill library (read by run.py:load_all_skills,
+  # written by skill_gen). The generated-artifact root is the other paths below.
+  skill_output_dir: ../skill_library
+  motion_planner_output_dir: ../skill_output/unitree_go2w/motion_plans
+  results_dir: ../skill_output/unitree_go2w/results
+  metadata_dir: ../skill_output/unitree_go2w/metadata
+  gait_dir: ../skill_output/unitree_go2w
+  simulator_dir: ..                           # repo root (where simulator/run.py is invoked)
+  trajectory_dir: ../skill_output/unitree_go2w/trajectories
+
+simulator:
+  python_bin: python
+
+critic:
+  max_iters: 5
