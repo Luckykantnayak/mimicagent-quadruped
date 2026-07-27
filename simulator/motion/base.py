@@ -56,11 +56,19 @@ class BaseMotionGenerator(ABC):
     # ==========================================================
     # INITIALIZATION
     # ==========================================================
-    def __init__(self, base_init_feet_pos, freq=1.0):
+    def __init__(self, initial_foot_positions_body, leg_names=None, freq=1.0):
         """
+        This is the constructor the simulator calls:
+
+            Motion(initial_foot_positions_body=..., leg_names=...)
+
+        A skill that overrides __init__ MUST keep those two parameter names.
+
         Args:
-            base_init_feet_pos : dict[str, np.ndarray]
-                Nominal foot positions in BODY frame.
+            initial_foot_positions_body : dict[str, np.ndarray]
+                Nominal foot positions in BODY frame, keyed by canonical leg name.
+            leg_names : list[str] | None
+                Canonical leg names. Defaults to the dict's keys.
             freq : float
                 Nominal motion frequency (Hz).
         """
@@ -68,14 +76,17 @@ class BaseMotionGenerator(ABC):
 
         # Foot reference positions (BODY frame)
         self.base_init_feet_pos = {
-            k: v.copy() for k, v in base_init_feet_pos.items()
+            k: v.copy() for k, v in initial_foot_positions_body.items()
         }
         self.base_feet_pos = {
-            k: v.copy() for k, v in base_init_feet_pos.items()
+            k: v.copy() for k, v in initial_foot_positions_body.items()
         }
 
         # Leg list
-        self.leg_names = list(base_init_feet_pos.keys())
+        self.leg_names = (
+            list(leg_names) if leg_names is not None
+            else list(initial_foot_positions_body.keys())
+        )
 
         # Time
         self.t = 0.0

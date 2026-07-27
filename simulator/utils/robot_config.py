@@ -214,12 +214,3 @@ def load_robot_config(robot_name: str, robots_dir: str = "robots") -> RobotConfi
         wheel_radius=data.get("wheel_radius", 0.0),
         extra=data.get("extra", {}),
     )
-
-
-
-config = load_robot_config("anymal_c")
-test_joint = "FL_HFE"
-xml_joint = config.to_xml_leg_name(test_joint)
-
-print(f"Canonical: {test_joint} -> XML Name: {xml_joint}")
-# Expected Output: Canonical: FL_HFE -> XML Name: LF_HFE

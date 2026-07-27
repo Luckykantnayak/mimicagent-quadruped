@@ -123,17 +123,12 @@ class MotionControllerRunner:
         root_quat = self.data.qpos[3:7].copy()
         self.motion_gen.reset(root_pos, root_quat)
 
-        self.motion_gen.set_velocity_command(
-            vx=getattr(args, "vx", 0.0),
-            vy=getattr(args, "vy", 0.0),
-            vz=getattr(args, "vz", 0.0),
-        )
-
-        self.motion_gen.set_angular_velocity_command(
-            roll_rate=getattr(args, "roll_rate", 0.0),
-            pitch_rate=getattr(args, "pitch_rate", 0.0),
-            yaw_rate=getattr(args, "yaw_rate", 0.0),
-        )
+        # Each skill owns its own base motion inside update_base_motion; the
+        # simulator does not command the robot. Previously the config's
+        # motion.{vx,yaw_rate,...} were injected here, which silently drove any
+        # skill that did NOT override update_base_motion — e.g. a spin-in-place
+        # skill translated 1.32 m because motion.vx defaults to 1.0.
+        # Pass them explicitly with set_velocity_command() if you want them.
 
         # -------------------------------------------------
         # Timing

@@ -24,7 +24,7 @@
         <motor ctrlrange="-45.43 45.43" />
       </default>
       <default class="go2foot">
-        <site group="1" pos="-0.002 0 -0.2264"/>
+        <site group="1" pos="0 0 0"/>
         <geom rgba="0.231373 0.380392 0.705882 1"/>
       </default>
       <default class="visual">

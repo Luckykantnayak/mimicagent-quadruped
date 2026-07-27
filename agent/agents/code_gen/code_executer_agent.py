@@ -1,3 +1,4 @@
+import ast
 import os
 import re
 
@@ -8,6 +9,43 @@ from agents.code_gen.state import AgentState
 from utils.tools import extract_python_code_from_message
 
 from typing import Dict, Any
+
+
+def validate_generated_code(code: str):
+    """
+    Reject output that cannot possibly run, BEFORE writing it to disk and paying
+    for a simulator round-trip. Returns an actionable message for the critic, or
+    None if the code is worth executing.
+
+    Without this, a truncated / prose-only / empty response burns a whole repair
+    iteration and surfaces as a misleading traceback from deep inside the sim.
+    """
+    if not code or not code.strip():
+        return (
+            "Your response contained no Python code at all. "
+            "Reply with ONLY a single complete Python file inside one "
+            "```python ... ``` fenced block, and nothing else."
+        )
+
+    try:
+        tree = ast.parse(code)
+    except SyntaxError as e:
+        return (
+            f"The generated file is not valid Python: SyntaxError: {e.msg} "
+            f"(line {e.lineno}). The file is most likely truncated or contains "
+            f"prose outside the code block. Reply with ONLY a single COMPLETE "
+            f"Python file inside one ```python ... ``` fenced block."
+        )
+
+    classes = [n.name for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]
+    if not any(n.endswith("MotionGenerator") for n in classes):
+        return (
+            "The generated file defines no class whose name ends in "
+            f"'MotionGenerator' (found: {classes or 'none'}). Define exactly one, "
+            "declared as: class <SKILL_NAME>_MotionGenerator(BaseMotionGenerator)."
+        )
+
+    return None
 
 
 def make_code_executer_node(cfg):
@@ -32,10 +70,26 @@ def make_code_executer_node(cfg):
                 'skill_name': state['skill_name'],
                 'skill_version': state['skill_version'],
                 'success': False,
-                'num_critic_iters': state['num_critic_iters'],
+                # count the failed attempt so the crash-repair loop terminates
+                'num_critic_iters': (state['num_critic_iters'] or 0) + 1,
                 'rewrite_mode': state['rewrite_mode'],
                 'skill_desc': state['skill_desc'],
 
+            }
+
+        # Guard: don't write or simulate output that can't run. Hand the actual
+        # defect to the critic instead of a downstream traceback.
+        problem = validate_generated_code(output)
+        if problem:
+            print(f"[code_executer] rejected generated code: {problem.splitlines()[0]}")
+            return {
+                'messages': [AIMessage("Failure\n" + problem)],
+                'skill_name': state['skill_name'],
+                'skill_version': state['skill_version'],
+                'success': False,
+                'num_critic_iters': (state['num_critic_iters'] or 0) + 1,
+                'rewrite_mode': state['rewrite_mode'],
+                'skill_desc': state['skill_desc'],
             }
 
         message = write_to_file(state, output, cfg)
@@ -46,7 +100,8 @@ def make_code_executer_node(cfg):
                 'skill_name': state['skill_name'],
                 'skill_version': state['skill_version'],
                 'success': False,
-                'num_critic_iters': state['num_critic_iters'],
+                # count the failed attempt so the crash-repair loop terminates
+                'num_critic_iters': (state['num_critic_iters'] or 0) + 1,
                 'rewrite_mode': state['rewrite_mode'],
                 'skill_desc': state['skill_desc'],
 
@@ -72,7 +127,8 @@ def make_code_executer_node(cfg):
                 'skill_name': state['skill_name'],
                 'skill_version': state['skill_version'],
                 'success': False,
-                'num_critic_iters': state['num_critic_iters'],
+                # count the failed attempt so the crash-repair loop terminates
+                'num_critic_iters': (state['num_critic_iters'] or 0) + 1,
                 'rewrite_mode': state['rewrite_mode'],
                 'skill_desc': state['skill_desc'],
 

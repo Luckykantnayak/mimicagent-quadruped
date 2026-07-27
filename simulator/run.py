@@ -61,9 +61,17 @@ def main():
     # --------------------------
     # Compute total frames to record
     # --------------------------
-    total_frames = int(args.record_cycles / args.gait_freq * args.sim_freq)
+    # Size the window from the SKILL's own phase frequency, not the config's
+    # gait.freq. The skill picks self.freq freely, so using the config value
+    # recorded an arbitrary slice of the motion: a skill with self.freq = 0.3
+    # got only 0.4 of one cycle captured, turning a full 360 deg flip into a
+    # 108 deg fragment that still passed every quality check.
+    skill_freq = getattr(runner.motion_gen, "freq", None) or args.gait_freq
+    total_frames = int(args.record_cycles / skill_freq * args.sim_freq)
     start_frame = 50
     end_frame = start_frame + total_frames
+    print(f"[run] Recording {total_frames} frames "
+          f"({args.record_cycles} cycles at skill freq {skill_freq})")
 
     # --------------------------
     # Main loop

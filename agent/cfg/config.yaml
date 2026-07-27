@@ -3,30 +3,43 @@ dataset:
   skills_per_generation: 20
 
 llm:
-  model: claude-sonnet-4-5-20250929
-  temperature: 1.0
-  max_tokens: 16000
+  model: claude-sonnet-5
+  temperature: 1.0        # 1.0 is the API default; Sonnet 5 rejects NON-default sampling params
+  max_tokens: 24000       # raised from 16000: Sonnet 5 runs adaptive thinking by default, and
+                          # max_tokens caps thinking + response text together. Kept under the
+                          # SDK's ~10-min non-streaming guard (the agent calls llm.invoke()).
 
 robot:
-  name: go2w                                  # selects prompts/<name>/ (NOT the simulator
-                                              # robot — that comes from simulator/config.yaml)
-  urdf: ../assets/robots/unitree_go2w/go2w.xml
+  name: go2w                                  # fills {robot} in the prompt templates. NOT the
+                                              # simulated robot — that is run.robot in
+                                              # simulator/config.yaml (unitree_go2w).
+  urdf: ../assets/robots/unitree_go2w/go2w.xml   # fills {urdf} in the prompt templates
 
 paths:
-  prompts_dir: prompts
+  prompts_dir: prompts                        # templates/ live under here
+  robots_dir: ../robots                       # per-robot dirs, each holding robot.yaml
+  simulator_dir: ..                           # repo root (where simulator/run.py is invoked)
+
+  # Generated-artifact roots. The reference repo keeps every artifact for a skill in
+  # one directory (skill_output/<robot>/<skill>/); this repo still splits them by
+  # kind and version, and the agent nodes index these keys individually.
+  gait_dir: ../skill_output/unitree_go2w                          # generated skill code
   data_output_dir: ../skill_output/unitree_go2w
-  # NOTE: skill_output_dir is the INPUT skill library (read by run.py:load_all_skills,
-  # written by skill_gen). The generated-artifact root is the other paths below.
-  skill_output_dir: ../skill_library
   motion_planner_output_dir: ../skill_output/unitree_go2w/motion_plans
   results_dir: ../skill_output/unitree_go2w/results
   metadata_dir: ../skill_output/unitree_go2w/metadata
-  gait_dir: ../skill_output/unitree_go2w
-  simulator_dir: ..                           # repo root (where simulator/run.py is invoked)
   trajectory_dir: ../skill_output/unitree_go2w/trajectories
+
+  # INPUT skill library (read by run.py:load_all_skills, written by skill_gen).
+  # Despite the key name this is not the generated-output root — it is the bundled
+  # 100-skill library that batch mode iterates over.
+  skill_output_dir: ../skill_library
 
 simulator:
   python_bin: python
 
 critic:
-  max_iters: 5
+  # 5 -> 8: SKILL_BACKFLIP was converging (ground-penetration violations
+  # 106 -> 76 -> 54 -> 10, i.e. within 4.1 mm of the 20 mm tolerance) and hit
+  # the cap one repair short of passing.
+  max_iters: 8

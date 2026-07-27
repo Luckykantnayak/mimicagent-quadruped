@@ -41,4 +41,4 @@ leg_order:
   - RL
   - RR
 
-wheel_radius: 0.1040071605
+wheel_radius: 0.0801            # wheel hub height at the "home" keyframe; the foot site sits here

@@ -1,4 +1,4 @@
-from prompts.build_json_prompts import load_yaml_config, load_prompt
+from prompts.prompt_loader import load_yaml_config, load_prompt
 
 from langgraph.graph import StateGraph, START, END
 from agents.base_agent import BaseAgent

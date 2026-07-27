@@ -3,12 +3,22 @@ __pycache__/
 *.py[codz]
 *$py.class
 
-# Custom Ignores — generated run artifacts. The generated skill CODE under
-# skill_output/<robot>/<skill>/ stays tracked; only the run outputs are ignored.
-/skill_output/*/trajectories/
-/skill_output/*/motion_plans/
-/skill_output/*/results/
-/skill_output/*/metadata/
+# Generated output — everything the agent produces is regenerable, so none of it
+# is tracked: skill code, trajectories, motion plans, quality reports, metadata.
+/skill_output/
+
+# Local-only: past runs. The bundled INPUT library lives in skill_library/ and is tracked.
+/archive/
+
+# Newly generated skill libraries (timestamped); keep the bundled skills_v1.
+/skill_library/*
+!/skill_library/skills_v1/
+
+# Startup artifacts
+graph_coder.png
+graph_skill_gen.png
+MUJOCO_LOG.TXT
+
 extras
 
 

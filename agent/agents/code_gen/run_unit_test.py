@@ -1,3 +1,4 @@
+import glob
 import json
 import os
 
@@ -14,7 +15,15 @@ def make_unit_test_node(cfg):
     def run_unit_test(state: AgentState) -> AgentState:
         skill_version = state["skill_version"]
         skill_name = state["skill_name"]
-        fn = os.path.join(cfg["paths"]["trajectory_dir"], skill_version, f"{skill_name}.pkl")
+        # The simulator names its output "<robot>_<mode>.pkl", so match on the suffix
+        # rather than assuming the bare skill name.
+        traj_dir = os.path.join(cfg["paths"]["trajectory_dir"], skill_version)
+        matches = sorted(glob.glob(os.path.join(traj_dir, f"*{skill_name}.pkl")))
+        if not matches:
+            raise FileNotFoundError(
+                f"No recorded trajectory for '{skill_name}' in {traj_dir}"
+            )
+        fn = matches[-1]
 
         # Load trajectory
         with open(fn, "rb") as f:

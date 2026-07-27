@@ -1,17 +1,24 @@
 from agents.code_gen.state import AgentState
 
 
-def should_continue(state: AgentState) -> str:
+def make_should_continue(cfg):
     """
-    Determines whether to proceed ahead with unit tests or not
-    :param state:
-    :return:
+    After code execution:
+      - it ran            -> score the trajectory ("continue")
+      - it crashed        -> feed the traceback to the critic ("repair"),
+                             bounded by critic.max_iters
+      - out of iterations -> give up ("end_skill")
     """
-    if state.get("success", False):
-        return "continue"
+    def should_continue(state: AgentState) -> str:
+        if state.get("success", False):
+            return "continue"
 
-    else:
+        if state.get("num_critic_iters", 0) <= cfg["critic"]["max_iters"]:
+            return "repair"
+
         return "end_skill"
+
+    return should_continue
 
 
 def make_critic_router(cfg):

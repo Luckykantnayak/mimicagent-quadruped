@@ -5,7 +5,7 @@ import streamlit as st
 from langchain_core.messages import AIMessage, get_buffer_string
 from langgraph.graph import StateGraph, START, END
 
-from prompts.build_json_prompts import load_yaml_config, load_prompt
+from prompts.prompt_loader import load_yaml_config, load_prompt
 from llm.load_claude import load_llm
 from agents.base_agent import BaseAgent
 from agents.code_gen.state import AgentState
@@ -13,7 +13,7 @@ from agents.code_gen.coder_agent import make_coder_node
 from agents.code_gen.motion_planner_agent import make_motion_plan_node
 from agents.code_gen.code_executer_agent import make_code_executer_node
 from agents.code_gen.critic_coder_agent import make_critic_coder_node
-from agents.code_gen.routers import make_critic_router, should_continue
+from agents.code_gen.routers import make_critic_router, make_should_continue
 from agents.code_gen.run_unit_test import make_unit_test_node
 from agents.code_gen.skill_filter import make_skill_filter_node
 from agents.code_gen.motion_diagnosis_agent import make_motion_diagnosis_agent_node
@@ -66,8 +66,8 @@ def build_app(llm, cfg):
     )
     graph.add_conditional_edges(
         "unit_test_router",
-        should_continue,
-        {"continue": "unit_test_agent", "end_skill": END},
+        make_should_continue(cfg),
+        {"continue": "unit_test_agent", "repair": "motion_diagnosis_agent", "end_skill": END},
     )
     graph.add_conditional_edges(
         "critic_router",
@@ -94,13 +94,15 @@ st.title("MimicAgent — Text → Motion Prior")
 st.caption("Describe a skill in natural language and watch the agents plan, code, execute, and repair it.")
 
 cfg = load_yaml_config(CFG_PATH)
-prompts_dir = cfg["paths"]["prompts_dir"]
-robots = sorted(d for d in os.listdir(prompts_dir) if os.path.isdir(os.path.join(prompts_dir, d)))
 
 with st.sidebar:
     st.header("Settings")
     api_key = st.text_input("Anthropic API key", value=os.environ.get("ANTHROPIC_API_KEY", ""), type="password")
-    robot = st.selectbox("Robot", robots, index=robots.index(cfg["robot"]["name"]) if cfg["robot"]["name"] in robots else 0)
+    # Read-only: the simulated robot comes from simulator/config.yaml (run.robot),
+    # which this app does not control — code_executer_agent invokes the simulator
+    # without --robot. Showing a picker here would be misleading.
+    st.text_input("Robot (set in simulator/config.yaml)",
+                  value=cfg["robot"]["name"], disabled=True)
     skill_name = st.text_input("Skill name (identifier)", "SKILL_CUSTOM")
     version = st.text_input("Version (output folder)", "demo")
     max_iters = st.number_input("Max critic iterations", min_value=0, max_value=10, value=int(cfg["critic"]["max_iters"]))
@@ -119,7 +121,6 @@ if run:
         st.stop()
 
     os.environ["ANTHROPIC_API_KEY"] = api_key
-    cfg["robot"]["name"] = robot
     cfg["critic"]["max_iters"] = int(max_iters)
 
     try:
@@ -202,6 +203,6 @@ if run:
         st.caption("Token usage")
         st.json(terminal_state["token_usage"])
     st.caption(
-        "Generated code is written to `gaits/<skill name>/`; the motion plan and quality "
+        "Generated code is written to `skill_output/<robot>/<skill name>/`; the motion plan and quality "
         "report are written under `data/` (per the paths in `cfg/config.yaml`)."
     )

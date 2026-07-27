@@ -66,6 +66,13 @@ def base_result(name: str, skill_dependent: bool, category: str):
 #          DISCRETE / HARD CONSTRAINTS
 # =====================================================
 
+# The foot SITES are attached at the wheel hub (assets/robots/unitree_go2w/go2w.xml,
+# class "go2foot"), so the wheel's ground-contact point is the site height MINUS the
+# rolling radius. 0.0801 m is the hub height at the model's "home" keyframe, which
+# makes a robot standing in its nominal pose evaluate to exactly zero contact height
+# — the same reference every skill is authored from (initial_foot_positions_body).
+WHEEL_RADIUS = 0.0801
+
 def eval_configuration_closure(traj, joint_tol=0.15, ori_tol=np.deg2rad(10)):
     r = base_result("configuration_closure", True, "discrete")
 
@@ -178,7 +185,6 @@ def eval_ground_penetration(traj, ground_z=0.0, tol=0.02):
     first_t = None
     first_leg = None
     deepest = 0.0
-    wheel_radius = 0.10
 
     # Per-leg stats (0=FL, 1=FR, 2=RL, 3=RR)
     per_leg_violation_count = {0: 0, 1: 0, 2: 0, 3: 0}
@@ -189,7 +195,7 @@ def eval_ground_penetration(traj, ground_z=0.0, tol=0.02):
     # foot_positions: (T, 4, 3)
     for t, feet in enumerate(traj["foot_positions"]):
         for leg_idx in range(feet.shape[0]):
-            z = feet[leg_idx, 2] + wheel_radius
+            z = feet[leg_idx, 2] - WHEEL_RADIUS
             penetration = ground_z - z
 
             # Track per-leg max penetration (even if below tol)
@@ -283,12 +289,10 @@ def eval_all_feet_airtime(traj, dt, max_airtime=0.5, foot_height_thresh=0.04):
     airtime = 0.0
     max_air = 0.0
 
-    wheel_radius = 0.10
-
     # foot_positions: (T, 4, 3)
     for feet in traj["foot_positions"]:
         # Compute contacts: foot is in contact if z <= threshold
-        contacts = feet[:, 2] + wheel_radius <= foot_height_thresh  # shape (4,)
+        contacts = feet[:, 2] - WHEEL_RADIUS <= foot_height_thresh  # shape (4,)
 
         if np.all(~contacts):  # all feet airborne
             airtime += dt

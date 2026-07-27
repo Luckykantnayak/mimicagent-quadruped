@@ -2,7 +2,7 @@ import os
 
 from langchain_anthropic import ChatAnthropic
 
-from prompts.build_json_prompts import load_yaml_config
+from prompts.prompt_loader import load_yaml_config
 
 def load_llm():
     api_key = os.environ.get("ANTHROPIC_API_KEY")

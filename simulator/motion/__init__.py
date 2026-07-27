@@ -100,23 +100,44 @@ def _get_motion_generator_from_module(module):
 
     A valid class must:
         - Have a name ending in 'MotionGenerator'
+        - Be a subclass of BaseMotionGenerator
         - Not be abstract
         - Be defined in this module (not imported from elsewhere)
     """
+    from motion.base import BaseMotionGenerator
+
     candidates = []
+    named_but_not_subclass = []
 
     for _, obj in inspect.getmembers(module, inspect.isclass):
-        if (
+        if not (
             obj.__name__.endswith("MotionGenerator")
-            and not inspect.isabstract(obj)
             and obj.__module__ == module.__name__
         ):
-            candidates.append(obj)
+            continue
+        if not issubclass(obj, BaseMotionGenerator):
+            named_but_not_subclass.append(obj.__name__)
+            continue
+        if inspect.isabstract(obj):
+            continue
+        candidates.append(obj)
+
+    if not candidates and named_but_not_subclass:
+        # Catch the common failure mode early, with an actionable message, instead
+        # of letting it surface later as AttributeError/KeyError deep in the sim.
+        raise RuntimeError(
+            f"'{named_but_not_subclass[0]}' in '{module.__file__}' does not subclass "
+            f"BaseMotionGenerator.\n"
+            f"Declare it as: class {named_but_not_subclass[0]}(BaseMotionGenerator):\n"
+            f"and add: from motion.base import BaseMotionGenerator\n"
+            f"Do not re-implement step() or reset() — inherit them."
+        )
 
     if not candidates:
         raise RuntimeError(
             f"No concrete MotionGenerator found in '{module.__file__}'.\n"
-            f"Make sure your class name ends with 'MotionGenerator' and is not abstract."
+            f"Make sure your class name ends with 'MotionGenerator', subclasses "
+            f"BaseMotionGenerator, and is not abstract."
         )
 
     if len(candidates) > 1:

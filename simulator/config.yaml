@@ -1,14 +1,23 @@
 run:
-  mode: "walking"
-  robot: "unitree_go2w"      # must match a file in robots_dir
-  robots_dir: "robots"       # NEW: directory containing per-robot YAMLs
-  init_position: "home"
+  mode: "walking"            # loads skill_output/<robot>/<mode>/<mode>_<N>.py (highest N).
+                             # There is no "example" fallback in this repo, so --mode must
+                             # name a skill that exists under skill_output/<robot>/.
+  robot: "unitree_go2w"      # must match a robots/<robot>/ directory (each holds robot.yaml)
+  robots_dir: "robots"       # directory holding the per-robot dirs
+  init_position: "home"      # keyframe name in the scene XML
   sim_freq: 200
   plot: false
   record: false
-  record_cycles: 2
-  version: "2025-12-28_12-44-48"
+  record_cycles: 2           # recording length = record_cycles / gait.freq * sim_freq
+  version: "sonnet5"         # names the output subfolder under trajectories/, and the
+                             # input skill-library folder for the agent's batch mode
 
+# Base-motion defaults. These are NO LONGER injected into the motion generator —
+# core/controller.py used to push them in at reset, which silently drove any skill that
+# did not override update_base_motion (a spin-in-place skill translated 1.32 m because
+# vx defaults to 1.0). Each skill now owns its base motion entirely, as in the reference
+# repo. Kept only because core/config.py indexes every key below with no fallback, and
+# they remain available on `args` for anything that wants them explicitly.
 motion:
   vx: 1.0
   vy: 0.0
@@ -18,15 +27,14 @@ motion:
   yaw_rate: 1.0
 
 gait:
-  freq: 1.5
-  params:
-    step_length: 0.4
+  freq: 1.5                  # phase frequency; also sets the recording length above
+  params:                    # defaults for the pre-agent legacy gaits (now under archive/);
+    step_length: 0.4         # generated skills define their own parameters internally
     step_height: 0.15
     duty_ratio: 0.75
 
-skating:
-  style: "back_alt"
+skating:                     # legacy skating-gait parameters, kept because
+  style: "back_alt"          # core/config.py reads skating.style unconditionally
   push_ratio: 0.2
   recovery_ratio: 0.2
   glide_ratio: 0.6
-

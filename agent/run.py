@@ -2,7 +2,7 @@ import argparse
 import json
 import os
 
-from prompts.build_json_prompts import load_yaml_config, load_prompt
+from prompts.prompt_loader import load_yaml_config, load_prompt
 
 from langgraph.graph import StateGraph, START, END
 from agents.base_agent import BaseAgent
@@ -13,7 +13,7 @@ from agents.code_gen.coder_agent import make_coder_node
 from agents.code_gen.motion_planner_agent import make_motion_plan_node
 from agents.code_gen.code_executer_agent import make_code_executer_node
 from agents.code_gen.critic_coder_agent import make_critic_coder_node
-from agents.code_gen.routers import make_critic_router, should_continue
+from agents.code_gen.routers import make_critic_router, make_should_continue
 from agents.code_gen.run_unit_test import make_unit_test_node
 from agents.code_gen.skill_filter import make_skill_filter_node
 from agents.code_gen.motion_diagnosis_agent import make_motion_diagnosis_agent_node
@@ -92,9 +92,10 @@ def build_graph():
 
     graph.add_conditional_edges(
         "unit_test_router",
-        should_continue,
+        make_should_continue(cfg),
         {
             "continue": "unit_test_agent",
+            "repair": "motion_diagnosis_agent",
             "end_skill": END,
         }
     )
