@@ -7,12 +7,9 @@ __pycache__/
 # is tracked: skill code, trajectories, motion plans, quality reports, metadata.
 /skill_output/
 
-# Local-only: past runs. The bundled INPUT library lives in skill_library/ and is tracked.
+# Local-only, never published: past runs and the input skill libraries.
 /archive/
-
-# Newly generated skill libraries (timestamped); keep the bundled skills_v1.
-/skill_library/*
-!/skill_library/skills_v1/
+/skill_library/
 
 # Startup artifacts
 graph_coder.png
