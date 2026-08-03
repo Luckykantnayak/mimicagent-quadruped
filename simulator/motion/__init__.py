@@ -16,8 +16,8 @@ robots/<robot_name>/example.py, loaded via get_example_controller().
 Any concrete class ending in 'MotionGenerator' is discovered and returned.
 
 Usage:
-    MotionClass = get_motion_controller("SKILL_TROT", gaits_dir="skill_output/unitree_go2w")
-    MotionClass = get_example_controller("robots/unitree_go2w/example.py")
+    MotionClass = get_motion_controller("SKILL_WALK", gaits_dir="skill_output/humanoid")
+    MotionClass = get_example_controller("robots/humanoid/example.py")
     gen = MotionClass(init_ee_pos=...)
 """
 
@@ -63,6 +63,33 @@ def get_example_controller(example_path: str):
     return _get_motion_generator_from_module(module)
 
 
+def get_curated_controller(skill_path: str):
+    """
+    Load a single-file hand-authored EXEMPLAR (reference skill) from
+    robots/<robot>/exemplars/<NAME>.py — the tracked counterpart to the
+    agent-generated, versioned skills under skill_output/.
+    """
+    if not os.path.isfile(skill_path):
+        raise FileNotFoundError(f"Curated skill not found: '{skill_path}'")
+    module = _import_module_from_path("skill.curated", skill_path)
+    return _get_motion_generator_from_module(module)
+
+
+def has_skill_version(gaits_dir: str, skill_name: str) -> bool:
+    """True iff skill_output/<robot>/<skill_name>/ holds a versioned <skill>_<N>.py.
+    Lets the controller tell a real GENERATED skill from a leftover artifact-only
+    dir (pkl/video but no code) and fall through to the curated reference."""
+    skill_dir = os.path.join(gaits_dir, skill_name)
+    if not os.path.isdir(skill_dir):
+        return False
+    # A finalized skill ships a clean <skill>.py (only the winning version kept);
+    # older/in-progress runs have versioned <skill>_<N>.py. Either counts.
+    if os.path.isfile(os.path.join(skill_dir, f"{skill_name}.py")):
+        return True
+    pattern = re.compile(rf"^{re.escape(skill_name)}_(\d+)\.py$")
+    return any(pattern.match(f) for f in os.listdir(skill_dir))
+
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
@@ -80,6 +107,9 @@ def _find_latest_skill_file(gaits_dir: str, skill_name: str) -> str:
             f"Expected structure: {gaits_dir}/{skill_name}/{skill_name}_1.py"
         )
 
+    # DURING a run, versioned <skill>_<N>.py exist and win (the loop's latest attempt).
+    # Only AFTER finalize — which ships a clean <skill>.py and DELETES the versions — is
+    # <skill>.py the loaded file. So: versioned-highest first, clean <skill>.py fallback.
     pattern  = re.compile(rf"^{re.escape(skill_name)}_(\d+)\.py$")
     versions = []
 
@@ -89,6 +119,10 @@ def _find_latest_skill_file(gaits_dir: str, skill_name: str) -> str:
             versions.append((int(m.group(1)), fname))
 
     if not versions:
+        final = os.path.join(skill_dir, f"{skill_name}.py")
+        if os.path.isfile(final):
+            print(f"[motion] Loading finalized skill '{skill_name}' → {skill_name}.py")
+            return final
         raise FileNotFoundError(
             f"No versioned files found for skill '{skill_name}' in '{skill_dir}'.\n"
             f"Expected files like: {skill_name}_1.py, {skill_name}_2.py, ..."

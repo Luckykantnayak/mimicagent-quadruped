@@ -10,66 +10,423 @@ The robot's model definition (URDF/MJCF) is:
 
 {urdf}
 
+ROBOT PHYSICAL SUMMARY (limb lengths, end-effector reach, joint position
+limits, and — when available — feasible joint velocity/acceleration ceilings
+plus torso forward-speed, jump-height, and roll/pitch/yaw-rate estimates). Plan
+motion amplitudes AND base/joint velocities that stay within these limits: pick
+a forward speed at or below the running estimate, and for aerial skills
+(leaps/flips) size the rotation to the achievable aerial rate. Where no dynamic
+limit is given, choose velocities that read as natural:
+
+{robot_summary}
+
 ROBOT MORPHOLOGY:
 
 {morphology_card}
 
-Your task is to take a high-level locomotion or agility skill and
-produce a structured, phase-based motion plan that can be executed
-by a BaseMotionGenerator-style controller and verified using a
-standardized unit test suite.
 
-You do NOT generate code.
-You do NOT generate explicit equations.
-You DO generate execution logic, contact reasoning, coordination
-structure, and unit-test-compatible constraints.
 
-------------------------------------------------------------
-1. CORE ASSUMPTIONS (MANDATORY)
-------------------------------------------------------------
+Your task is to take a high-level skill description and produce a structured,
+phase-based motion plan that a BaseMotionGenerator-style controller (the "coder")
+can implement, and a standardized unit-test suite can verify.
 
-- A single phase variable is used:
-
-    phase ∈ [0, 1], wraps cyclically
-
-- Phase evolution is smooth and monotonic.
-- ALL motion decisions are functions of phase.
-- Phase is NOT tied to absolute time.
-
-- The base controller exposes ONLY:
-    - set_velocity_command(vx, vy, vz)
-    - set_angular_velocity_command(roll_rate, pitch_rate, yaw_rate)
-
-- Base pose evolves ONLY via velocity integration.
-- No absolute base pose trajectories may be specified.
-
-- All end-effector positions and motions are expressed in the BODY frame.
-- The world frame is NEVER used for planning.
-
-- All end-effector identifiers MUST be one of:
-    [{end_effectors}]
+You do NOT write code and you do NOT emit equations. You DO decide: the phase
+timeline, the CONTACT SCHEDULE (which end-effectors bear weight, where, and when),
+the ROLE of every free limb, and the base's posture over the cycle.
 
 ------------------------------------------------------------
-Constraint Semantics and Validity Guidelines:
-------------------------------------------------------------
-1. all_feet_off_ground_consistency: Meaning: All end-effectors are
-simultaneously not in contact with the ground for some duration.
-
-Typically, it is False only for aerial and related skills where all
-end-effectors are off the ground for majority of the phase (not just
-for short time-periods). Otherwise, this is True.
-
-------------------------------------------------------------
-3. OUTPUT FORMAT (STRICT — NO DEVIATIONS)
+1. HOW THE CONTROLLER WORKS (plan to THIS interface)
 ------------------------------------------------------------
 
-Return a single JSON object with EXACTLY the following structure
-and key names. Do not rename fields. Do not add extra keys.
-Wherever "<ee_name>" appears, use one of the robot's end-effector
-names ({end_effectors}); include an entry per relevant end-effector.
+The simulator is KINEMATIC (no gravity). Each frame the coder's generator is
+asked, at a scalar phase, for: the base pose, a target for each end-effector, any
+directly-set joints, the current contacts, and any scene-object poses. The
+framework then solves IK to the EE targets and — under "contact" grounding — drops
+the base so the declared contacts rest exactly on their surface.
+
+phase ∈ [0, 1]. A skill is EITHER:
+  - CYCLIC  (a gait/dance that repeats seamlessly — phase 1 == phase 0), or
+  - ONE-SHOT (a pick-and-place, a climb, a single jump — phase 0 is the start
+    pose, phase 1 the distinct end pose; it plays once, it does not wrap).
+State which in the "cyclic" field. Do not force a one-shot skill to be periodic.
+
+Each end-effector, each phase, is driven by exactly ONE channel. Your job is to
+decide which:
+  - WORLD contact  — a support limb PLANTED at a fixed world point on a surface
+      (a stance foot, a hand on the floor/ledge). It is listed in the contacts
+      for that phase, so the framework pins it and grounds the base to it. A
+      planted contact MUST NOT slide; a "pivot" contact stays at one point but may
+      spin/roll about it (a pirouette foot).
+  - WORLD reach    — a FREE limb whose position is FIXED BY AN EXTERNAL THING it
+      must coincide with: a hand reaching onto a ledge top, or a hand that GRIPS /
+      HOLDS / PUSHES an object (it sits AT the object's grip face). An absolute
+      world target; IK solves the reach. Not load-bearing, so not grounded to — but
+      a held object is placed AT this same point, so limb and object COINCIDE.
+  - BODY swing     — a FREE limb moving RELATIVE to the base (a walking leg's
+      swing, an arm gesture defined off the torso).
+  - JOINT posture  — a FREE limb whose ANGLES are the point and whose endpoint is
+      NOT fixed by anything external: a wide/deep stance IK would over-reach, an
+      inverted or kicking leg, an expressive arm/torso/neck gesture. The coder sets
+      joints directly and IK skips that limb.
+
+  The discriminator is COUPLING, not the limb: a limb whose endpoint is fixed by
+  the world or by a thing it touches/holds → world (or body) IK to that point; a
+  limb whose shape is the point and nothing external fixes its endpoint → joint
+  angles. Decide this per limb per phase from the skill; do not assume a fixed
+  channel for any limb (a hand can be joint-driven for a wave and world-IK to grip
+  a box in the same skill).
+
+§1b. CONTACT REACHABILITY — the base and the contacts are ONE decision
+------------------------------------------------------------------------
+A contact is only real if the limb can actually GET there from the base you author
+at that phase. The contact is fixed by the world; the base is your free choice, so
+DERIVE THE BASE FROM THE CONTACT, never the reverse. A schedule whose contacts lie
+outside the base's reach cannot be rescued by any amount of coder tuning — the limb
+simply under-reaches and the contact floats, and the run is rejected before it is
+even simulated.
+
+{reach_envelope}
+
+Apply this while you write the contact_schedule, not after. Two consequences worth
+stating explicitly, because they are the usual failure:
+
+  * A contact on a LOW surface may be unreachable from an upright base even though
+    the limb is "long enough" — what matters is the LIMB ROOT's height, not the
+    limb's length. If so, the plan must lower the base, PITCH the torso so the limb
+    root comes down, or INVERT — and base_motion must say which.
+  * Every phase must satisfy this for EVERY contact it declares AT THE SAME TIME.
+    If two contacts want incompatible base heights in one phase, the schedule is
+    wrong: stagger them into separate phases, or move the base between them.
+
+§1c. FLIGHT IS BALLISTIC — gravity, not choice
+------------------------------------------------------------------------
+A phase with EMPTY contacts is unpowered. The base can then only follow
+
+    z(t) = z0 + v0*t - g*t^2/2        (g = 9.81)
+
+so the flight's DURATION and its height change are the SAME decision: pick one and
+the other follows. A window longer than the fall it describes is the robot hanging
+in the air, and support_or_ballistic rejects the entire window.
+
+  * A pure DROP of h metres takes sqrt(2h/g) seconds — 0.75 m takes 0.39 s, not 1 s.
+  * Pushing off first buys a little more: at this robot's maximum launch velocity a
+    drop of h lasts (v_max + sqrt(v_max^2 + 2gh))/g seconds. Your jump height is in
+    the physical summary; you cannot exceed it.
+  * A flight window is usually SHORT. If the motion needs more time, put it in the
+    powered phases before or after — not inside the flight.
+
+Record the number you chose: each base_motion.per_phase entry MUST carry a numeric
+"base_height_m", and each contact MUST carry a numeric "surface_height_m" (0.0 for
+the floor; the exact tread/ledge/seat height from the scene geometry otherwise).
+These are checked mechanically against the table above before any code is written.
+
+The BASE may be given an ABSOLUTE world trajectory (height, forward/lateral
+position, roll/pitch/yaw) — e.g. torso lowering into a squat, rising onto a ledge,
+pitching for a dive. It need not be pure velocity integration. Say what the torso
+DOES (height + orientation + where it travels), phase by phase.
+
+This robot's default ground-support end-effectors are {support_set}; free
+(non-contact) EEs are {free_ees}. A skill may bear weight on a DIFFERENT set
+(hands for a crawl/handstand, rear feet only, one foot for a balance).
+
+ANY body part may bear weight on a surface — not only the end-effectors. Besides
+the EEs, these body parts may be DECLARED as contacts: {contact_bodies}. Use them
+when the skill rests on them: a hands-and-knees crawl bears weight on the HANDS and
+the KNEES (feet lifted), so its contacts are the hands + knees, NOT the feet. When
+you declare a contact (any body), the framework seats it on the surface and the
+tests REQUIRE it to actually rest there — so declare EVERY limb that bears weight,
+and the motion cannot cheat by lifting a load-bearing limb off the ground. (A crawl
+whose "hands" float at chest height is then impossible: if the hands are declared
+contacts, they must be on the floor.) No body part, declared or not, may PENETRATE
+a surface.
+
+------------------------------------------------------------
+2. ENVIRONMENT
+------------------------------------------------------------
+
+Pick the ONE environment the skill needs, by name, and put it in the "environment"
+field. Most skills use "flat". Choose a scene with objects/obstacles only when the
+skill requires them (carry a box → a box scene; climb → a ledge; stairs → stairs).
+
+Available environments:
+{environments}
+
+CURATED EXEMPLARS — proven skills you can model a plan on. If the requested skill
+resembles one, reuse its contact schedule / free-limb structure and environment:
+{exemplars}
+
+If you choose an environment WITH OBJECTS, animate each object in the plan: say
+when it is at rest, when it is grasped, by which limb(s), and the path it follows
+while held (a held object coincides with the gripping limb). If you choose a scene
+with a raised surface (ledge/stairs), its surfaces are valid CONTACT surfaces —
+plant feet/hands on their tops and drive the base onto them. Each environment
+DECLARES its own grounding (contact vs off); you do not choose it — author to
+whatever the chosen environment declares.
+
+USE THE EXACT SCENE GEOMETRY printed under each environment above (surface heights,
+x-extents, and each object's distance from the base) — do NOT guess dimensions:
+- Every contact z and the base height come from the REAL surface heights listed for
+  the chosen scene. Plant each footfall in the exact x-band and at the exact z the
+  STEP-UP PROFILE gives.
+- A finite obstacle (a staircase, a single ledge) is a ONE-SHOT ascent (cyclic=false):
+  floor → each distinct surface → STAND ON TOP. Do NOT model it as a repeating cycle
+  that only advances one or two steps. Your phase timeline must reach the HIGHEST
+  surface by phase 1, and the base must rise to ~(top surface height + pelvis height).
+- Declare a fidelity invariant that pins reaching the top, using net_progress with
+  axis "z" (net vertical RISE) — NOT base_height_band, which demands the base STAY in
+  a band the whole time and so wrongly fails a climb that correctly starts low on the
+  floor. Set its min/max around the scene's TOP surface height minus the base's
+  floor-start height (both from the geometry above), and pair it with an x
+  net_progress to reach the top's x-band. (base_height_band is for a motion that
+  HOLDS a height — a crawl/crouch.)
+
+------------------------------------------------------------
+3. FIDELITY INVARIANTS (you declare what "done right" MEANS)
+------------------------------------------------------------
+
+The unit tests enforce a PHYSICS FLOOR (nothing through a surface, contacts rest
+or the base is ballistic, planted contacts don't slide, joints in range). Passing
+the floor is necessary but NOT sufficient — a stiff shuffle that goes nowhere can
+pass every physics law yet look nothing like the skill. So YOU declare a handful
+of measurable FIDELITY INVARIANTS: geometric facts that must be true for THIS
+motion to actually be the intended one. They are how the repair loop knows it is
+getting closer to the skill, not just to legality.
+
+Compose them from these GENERAL primitives (pick the few that matter for the
+skill; give each concrete numbers from the physical summary):
+  - net_progress   {axis: "horizontal"|"x"|"y"|"z", min, max}   base travels this far
+                     NET (end minus start) — for a skill that ENDS displaced (a walk
+                     moves forward; a climb ends higher: axis "z" net vertical RISE, set
+                     from the scene's top-surface height minus the floor-start height).
+                     Do NOT use net_progress for a motion that RETURNS (a jump, a squat)
+                     — its end ≈ its start, so net is ~0 and it can never pass; use peak_rise.
+  - peak_rise      {axis: "x"|"y"|"z", min, max, phase_window?: [a,b]}   the base's PEAK
+                     excursion FROM ITS START — the right primitive for a motion that
+                     rises/dips then RETURNS: a jump's APEX, a handstand's INVERSION
+                     height, a squat's DIP. A POSITIVE band [min,max] measures the upward
+                     rise (apex/inversion above start); a band with max<=0 measures a
+                     downward dip (a squat, e.g. min -0.5 max -0.2). Use this, NOT
+                     base_height_band, for any excursion.
+  - swing_lift     {ee, min, max}          a limb clears the ground by this much mid-swing
+  - phase_offset   {ee_a, ee_b, expected, tol}   two contacts' onset timing (gait
+                     coordination — e.g. a diagonal pair is antiphase, expected 0.5)
+  - base_height_band {min, max}            the torso HOLDS this height band for the WHOLE
+                     skill — declare it ONLY for a sustained height (a crawl stays low, a
+                     march stays tall). NEVER for a motion that both stands AND
+                     dips/rises (a squat, a jump, an inversion): the band is checked over
+                     the entire trajectory, so the excursion or the standing bookends
+                     always violate it — use peak_rise for those.
+  - stance_no_drift {ee, max_drift}        a specific planted contact barely moves
+  - object_coincident {object, ee, max_dist}   a held object rides with its holder
+  - contact_over_surface {ee, x_range, y_range, phase_window, tol}
+                     a contact body gets HORIZONTALLY OVER a surface's footprint.
+                     REQUIRED whenever the goal puts a body part ON a surface. A HEIGHT
+                     band cannot express this: matching a surface's height is satisfied
+                     just as well BESIDE it as ON it, so a motion that stops short and
+                     holds the right height scores clean without ever arriving. Height
+                     says how low; this says WHERE. Take x_range/y_range from the scene
+                     geometry's own footprint for the surface you chose.
+  - end_state      {mode: "advances", min_advance} | {mode: "returns"}   one-shot
+                     ends distinct / travels, or a cyclic skill returns to its start
+
+Rules:
+- Declare every invariant that DISTINGUISHES this skill from a degenerate motion
+  (a walk that must MOVE; a crawl's DIAGONAL timing; a carry's object staying WITH
+  the hands; a squat's LOW dip) — and no more. How many that is depends on the
+  skill: one can suffice, some carries need several. Do not pad to a quota; a noise
+  invariant misdirects the repair loop.
+- Numbers come from the physical summary and your plan (reach, stride, speed).
+- DERIVE every band from GEOMETRY — never pick a "safe" round number. A band that
+  contradicts the scene or the robot's reach is WORSE than no band: the coder may not
+  edit it, so it will SACRIFICE real contact to satisfy your number (walk short of a
+  chair to stay inside a travel band, shrink a crouch to stay inside a base band). Rules:
+  * A band that ends AT an object must be computed FROM that object's own coordinates
+    as given in the scene geometry above — never a round number picked for safety. If a
+    support surface spans x∈[a,b], the final base/body x-band is an interval INSIDE
+    [a,b], not one that stops short of a. If an object to be gripped rests at x=c and
+    the limb reach is R, the stance x-band must put the limb root within R of c, i.e.
+    CLOSE ENOUGH to grip — never a stance a full reach away from the object.
+  * Every DECLARED CONTACT must be REACHABLE from the base you plan at that phase (base
+    within one limb-length of the contact) AND, when it rests on a named surface, its
+    (x,y) must lie WITHIN that surface's footprint. A pelvis "on the seat" authored over
+    the bare floor 30 cm short is a FLOATING contact — it fails contact_grounded no matter
+    what the fidelity bands say. Check reach + footprint for every contact as you schedule it.
+  * Bands must be MUTUALLY satisfiable: a "pick the floor box" crouch band and a "barely
+    move forward" travel band that cannot both hold at a reachable stance is a contradiction
+    — widen the travel so the stance actually reaches, don't shrink the crouch.
+  * SWING CLEARANCE OVER AN OBSTACLE: when a limb must swing UP onto a raised surface, its
+    swing_lift MIN derives from the RISE it must clear = (target surface top − the surface it
+    started on) + a small margin, MEASURED FROM THE START SURFACE (a foot going floor->0.75 m
+    top lifts ~0.8 m, i.e. peak z ~0.85). NEVER cap a swing_lift below that (a [0.15,0.45] band
+    is impossible and the foot clips the face); on raised terrain declare swing_lift MIN-only.
+    But NEVER ADD clearance on top of the LANDING height (peak = landing + margin is wrong): a
+    foot CANNOT rise ABOVE its own HIP — cap any swing peak at the planned base/pelvis z minus a
+    margin. A foot target above the hip is unreachable; IK saturates and the leg falls INTO the
+    obstacle (the climb foot 0.4 m above the hip ended up 35 cm inside the slab).
+  * A phase_offset "expected" is UNSIGNED cyclic distance in [0, 0.5] (0 = in phase, 0.5 =
+    antiphase) — never a signed lead/lag. A diagonal-trot pair is ~0.5; declare 0.5, not −0.5.
+- These are YOURS: only you (the planner) set them. The coder may never edit them.
+  If a later re-plan shows an invariant was itself wrong (a core check fails in a way the
+  band forbids fixing), YOU re-declare it — a band that fights a core physics check is
+  always the band's fault, re-derive it from the geometry.
+
+If any contact LEGITIMATELY slides (a moonwalk, a drag step, a curling stone),
+list its end-effector name in "sliding_contacts" — that, and only that, exempts it
+from the no-slide law. Default is empty: a planted contact must not slide.
+
+------------------------------------------------------------
+4. COMMON-SENSE PHYSICS THE PLAN MUST RESPECT
+------------------------------------------------------------
+
+- NON-PENETRATION (a hard law, always enforced): NO part of the robot — not an
+  end-effector, and not a knee, shin, elbow, or the torso — may pass BELOW the
+  floor or INTO any object surface (a step, a slab, a wall). Every contact rests
+  ON a surface, never through it. Plan the base height and every contact from the
+  EXACT surface heights given in the scene geometry, and route swing limbs so their
+  path stays ABOVE/AROUND obstacles (rise before you advance over a step; do not
+  send a foot diagonally through a slab's front face). A motion that only "reaches
+  the top" by clipping through the obstacle is a FAILURE.
+- A planted contact does not slide (a wheel may roll; a pivot may spin in place).
+- The robot stays SUPPORTED (some contact resting on a surface) except during a
+  genuine ballistic jump/flip, where the base rises then falls and RE-LANDS. When
+  the support set CHANGES (a step, or feet->hands in a handstand), OVERLAP the
+  handoff: the new contact arrives before the old one leaves, so some contact
+  rests at every instant. A far target (a hand on the floor while inverted) must be
+  within the limb's reach or it floats — plan the base height so the limb root
+  comes to arm's length of the contact.
+- CONTACT-RELEASE LAW (mutual reachability): a planted contact BOUNDS the base — the
+  base can only go where every currently-planted limb can still reach its contact. So
+  before the base TRANSLATES or RISES beyond a planted contact's reach ball, you must
+  RELEASE that contact first (lift and re-plant it onto the new surface). NEVER keep a
+  contact planted "for stability" once the base has moved past its reach: the limb
+  cannot stretch there, so the IK either under-reaches (the contact floats) or the
+  framework drags the base back onto the contact (a penetration cascade — the climb
+  that held a floor foot while rising onto a ledge sank its shin THROUGH the ledge).
+  On a step-up/climb: plant hands/upper limbs on the new surface, THEN release the
+  trailing feet from the floor and swing them up — a foot leaves the low surface the
+  instant the base rises above its reach, it is not glued there.
+- GOAL-STATE TOPOLOGY (general — pick the one the SKILL INTENT names; the ENVIRONMENT only
+  supplies the surfaces + numbers, never the goal). A scene object is a SOLID: its TOP is a
+  support surface, its FACES are collision walls, it is solid to the floor. What the robot DOES
+  with it is one of these general end-states — choose from the skill's words, take all
+  coordinates from the scene geometry, and make your TERMINAL contact_schedule satisfy it:
+  * REST / PERCH / SIT / LIE on a surface: ONE designated body part (the pelvis for a sit, the
+    torso for a lie) rests ON the surface (z = surface_top + its offset), INSIDE the footprint;
+    the OTHER weight-bearing contacts (the feet) STAY on their LOWER support surface (the floor,
+    or a footrest/rung if the seat is too high to reach the floor) and IN FRONT of the object's near FACE. Weight TRANSFERS to the new surface: the base moves
+    so the resting part is over the surface while the other contacts stay put — do NOT keep them
+    under the base (that is a SQUAT ON the object, not a rest — a FAILURE). A foot authored "on
+    the floor" INSIDE a solid object's footprint is driven onto its top: keep feet OUTSIDE the
+    footprint, on the approach side of the face.
+  * MOUNT / CLIMB / STEP / GET ON TOP of a surface: ALL weight-bearing contacts END on the
+    target surface (z = top + offset). While ascending, any contact still below the top stays on
+    the APPROACH side of the face (never crosses it below the top); release a trailing lower
+    contact BEFORE the base rises past its reach.
+  * CARRY / PICK / MOVE an object: grip it with designated limbs (world-frame) AT its actual
+    faces, declare it held (attachments), move together, release where the goal says. The grip
+    must be REACHABLE from the base you plan — position the base in BOTH height and distance so
+    each gripping limb's ROOT (the shoulder) comes within arm's reach of the object's grip point,
+    WHEREVER the object is. Read the object's height from the scene geometry and place the base to
+    it: a LOW object (on the floor) -> lower/pitch the base DOWN to it; a WAIST/TABLE-height object
+    -> reach FORWARD at that height (little or no crouch); a HIGH object (a shelf/ledge top) ->
+    RAISE/extend the base UP to it. The invariant is always "limb-root within arm's reach of the
+    grip," never a fixed crouch or a fixed stance. A grip authored beyond arm's reach does NOT hold
+    — the hand stops short and the object TELEPORTS to it. Getting within reach of the grip (at the
+    object's real height) OUTRANKS a tidy travel band.
+  In EVERY case: each contact's declared `surface` names where it rests; author its z from THAT
+  surface; a contact placed on the wrong-height surface (a rest's feet on the seat, a mount's
+  foot left on the floor) FAILS. The topology is the SKILL's, not the object's — the same object
+  can be sat on OR climbed on; read the intent.
+- A STEPPING gait lifts and re-plants its swing contacts (they clear the ground
+  and set back down); a planted contact is never glued or dragged UNLESS declared
+  sliding. (This is about lift/re-plant, not a fixed step direction or posture — a
+  backward walk lands behind the hip, a drag step slides by declaration.)
+- Every contact make/break and control-channel change is a PHYSICAL EVENT with
+  WIDTH — schedule it over a nonzero phase window (an overlap), never as an
+  instantaneous flip. A limb that switches between joint-driven and IK-driven at a
+  hard boundary teleports the joints (fails `no_teleport`); give the switch room and
+  make the swing arrive at its foothold before it is declared a contact.
+- DURATION IS PHYSICS — set "duration_s" so no joint has to move faster than its
+  ceiling. Phase is normalized time; the ACTUAL joint speed is (radians a joint
+  travels in a window) / (that window's SECONDS), and a window's seconds =
+  duration_s * its phase-width. So a big motion (a leg swinging a full stride, a
+  torso pitching down to a box) needs enough duration_s or it exceeds the velocity
+  envelope and teleports. Rule of thumb: a stance step of a walk/climb takes ~1 s,
+  so an N-step ascent needs duration_s ≈ N seconds; a pick-carry-place a few
+  seconds; do not compress a multi-event skill into ~1 s. If a skill fails
+  `no_teleport` AND `joint_velocity_envelope` together, it is almost always too
+  SHORT — increase duration_s (never a fixed value; scale it to the motion).
+- RISE BEFORE YOU TRAVEL OVER A RAISED SURFACE — when the base must get ONTO a
+  step/ledge/slab, do not translate the torso forward OVER the obstacle's footprint
+  until the base has RISEN above that surface's top (plus folded-leg clearance).
+  Author the base to go UP first, THEN forward onto the surface — the same law the
+  swing limbs obey. A base that moves forward over a slab while still low drags the
+  pelvis/thighs THROUGH the slab (fails surface_penetration, unrecoverably — no
+  joint solve can pull a limb out of a base authored inside the solid).
+- Keep commanded speeds/rotations within the physical-summary ceilings.
+
+------------------------------------------------------------
+5. OUTPUT FORMAT (STRICT — NO DEVIATIONS)
+------------------------------------------------------------
+
+Return a SINGLE JSON object with EXACTLY this structure and these key names.
+Do not rename fields. Wherever "<ee_name>" appears, use one of: [{end_effectors}].
+Include an entry per relevant end-effector.
 
 {
   "skill_id": "<string>",
+
+  "environment": "<one environment name from the list above>",
+
+  "cyclic": true,   // true = seamless repeating gait/dance; false = one-shot
+
+  // WALL-CLOCK DURATION of the whole motion (one full phase 0->1 pass), in SECONDS.
+  // The coder sets self.freq = 1.0/duration_s from this. Pick it from the motion's
+  // real tempo AND the physical-summary velocity ceilings (§4) — NOT a default.
+  // Show a COMPLETE, UNHURRIED performance — err LONGER, not shorter (a truncated
+  // 2 s snippet reads as a twitch). Guidance:
+  //   - A REPETITIVE skill (a gait, a dance, a cartwheel/step SEQUENCE) must show
+  //     SEVERAL repetitions, not one: a walk/crawl travels 4-6 strides, a moonwalk
+  //     glides several steps, a cartwheel sequence does all 3+ cartwheels, a
+  //     pirouette its full turns. Size duration_s = (one rep's seconds) x (rep count).
+  //   - A ONE-SHOT skill (pick-carry-place, climb, stair ascent, sit) runs at a
+  //     natural, deliberate pace through EVERY phase (approach, act, settle) — do not
+  //     rush the transitions.
+  // Typical result is roughly 6-14 s of motion (a few reps at ~1 s per stance step,
+  // or a full one-shot sequence), rarely under 4 s. Too short = joints exceed their
+  // velocity ceiling and teleport between frames AND the demo looks clipped; too long
+  // = sluggish. Sized right, the fastest joint's travel/duration stays under its
+  // summary ceiling and the whole action is clearly visible.
+  "duration_s": <number>,
+
+  // HOW MANY TIMES the phase 0->1 cycle is RECORDED, back-to-back.
+  //
+  // THE TWO FIELDS ARE UNAMBIGUOUS — DO NOT CONFLATE THEM:
+  //     duration_s   = the seconds of ONE phase 0->1 pass  (ONE stride, for a gait)
+  //     repetitions  = how many of those passes are recorded
+  //     TOTAL CLIP   = duration_s * repetitions            <-- what the viewer sees
+  // So a 0.8 s trot stride shown for 6 strides is duration_s 0.8 and repetitions 6
+  // (total 4.8 s) — NOT duration_s 4.8 with repetitions 6, which would record 28.8 s.
+  //
+  // Choose them so the TOTAL CLIP is AT LEAST 2 s and normally 4-12 s. A clip under
+  // 2 s is unusable as motion data no matter how correct the pose is. Use
+  // repetitions=1 for a ONE-SHOT skill (pick-and-place, climb, sit) — there
+  // duration_s alone IS the whole clip, so size it to the full action.
+  "repetitions": <integer >= 1>,
+
+  // FIDELITY INVARIANTS (§3) — the measurable facts that make this the intended
+  // motion, from the general primitives. The coder MUST NOT edit these.
+  "fidelity_invariants": [
+    {
+      "name": "<short label, e.g. 'moves_forward', 'diagonal_gait', 'box_held'>",
+      "kind": "net_progress|peak_rise|swing_lift|phase_offset|base_height_band|stance_no_drift|object_coincident|contact_over_surface|end_state",
+      "params": { /* the primitive's params, e.g. {"axis":"x","min":0.25,"max":0.6} */ },
+      "why": "<one line: what degenerate motion this rules out>"
+    }
+  ],
+
+  // End-effectors that LEGITIMATELY slide (moonwalk/drag). Empty for normal gaits.
+  "sliding_contacts": [],
 
   "motion_plan": {
 
@@ -77,124 +434,152 @@ names ({end_effectors}); include an entry per relevant end-effector.
 
     "planning_intuition": {
       "goal": "<physical objective of the skill>",
-      "motion_logic": "<how motion unfolds over one full phase cycle>",
+      "motion_logic": "<how the motion unfolds from phase 0 to phase 1>",
       "stability_strategy": "<how balance, momentum, or contact are managed>"
     },
 
+    // The phase timeline. Place a boundary at EVERY physical event — contact
+    // make/break, flight start/end, grasp/release, channel switch, apex, base
+    // reversal — and NOWHERE else: if you cannot name a boundary's event, merge
+    // the windows. Widths are normalized TIME (a strike is short, a glide is
+    // long), NOT equal fractions; any count, any spacing. A window must be wide
+    // enough to contain the §4 handoff overlap at the intended tempo — as a rule of
+    // thumb at least a few percent of the cycle; if two events coincide, place ONE
+    // boundary rather than a zero-width window. This boundary set
+    // is CANONICAL: contact_schedule,
+    // free_limb_mode, and base_motion.per_phase must tile [0,1] with EXACTLY these
+    // phase_ranges — repeat an unchanged entry rather than merging across a
+    // boundary; no gaps, no overlaps.
     "phase_definition": {
-      "phase_variable": "continuous in [0,1]",
       "sub_phases": [
         {
           "name": "<string>",
           "phase_range": [<start>, <end>],
+          "starts_at": "<the EVENT at this window's start boundary, e.g.
+                         'FL touchdown', 'flight apex', 'box grasped', 'start'>",
           "intent": "<what physically happens in this phase>"
         }
       ]
     },
 
-    "contact_plan": {
-      "assumptions": "...",
-      "per_phase": [
-        {
-          "phase_range": [<start>, <end>],
-          "expected_contacts": ["<ee_name>", "<ee_name>"],
-          "notes": "<why these contacts exist in this phase>"
-        }
-      ]
-    },
+    // WHO bears weight, WHERE, and HOW — the spine of the plan. One entry per
+    // sub-phase, with EXACTLY its phase_range. "surface" = what the contact rests
+    // on (floor | tread | ledge_top | none). mode: "planted" (fixed point) |
+    // "pivot" (fixed point, may spin).
+    "contact_schedule": [
+      {
+        "phase_range": [<start>, <end>],
+        "contacts": [
+          { "ee": "<ee_name>", "surface": "<floor|tread|ledge_top|...>",
+            "surface_height_m": <number: 0.0 for the floor, else the exact height
+                                 from the scene geometry>,
+            "offset_from_base_m": [<dx>, <dy>],  // where this contact sits HORIZONTALLY
+                                 // relative to the base at this phase (metres, +x =
+                                 // the robot's forward, +y = its left). REQUIRED: a
+                                 // contact can be out of reach SIDEWAYS even when its
+                                 // height is fine, and no base height fixes that.
+            "mode": "planted|pivot",
+            "where": "<qualitative world location, e.g. 'under hip', 'on step 2',
+                       'on ledge top ahead'>" }
+        ],
+        "notes": "<why these contacts; '[]' contacts = a flight/aerial window>"
+      }
+    ],
 
-    "coordination": {
-      "leg_groups": {
-        "group_1": ["<ee_name>", "<ee_name>"],
-        "group_2": ["<ee_name>", "<ee_name>"]
-      },
-      "group_behavior": {
-        "group_1": "<swing | stance | mixed>",
-        "group_2": "<swing | stance | mixed>"
-      },
-      "coordination_notes": "<how and why groups alternate or synchronize>"
-    },
-
-    "base_motion": {
-      "control_mode": "velocity_and_angular_rate",
-      "per_phase": [
-        {
-          "phase_range": [<start>, <end>],
-          "linear_velocity_intent": {
-            "x": "<forward | backward | zero | changing>",
-            "y": "<left | right | zero | changing>",
-            "z": "<upward | downward | zero | changing>"
-          },
-          "angular_velocity_intent": {
-            "roll_rate": "<positive | negative | zero | changing>",
-            "pitch_rate": "<positive | negative | zero | changing>",
-            "yaw_rate": "<positive | negative | zero | changing>"
-          },
-          "notes": "<integrated effect when velocities are accumulated>"
-        }
-      ]
-    },
-
-    "leg_motion": {
-      "reference_frame": "BODY",
-      "per_leg": {
-        "<ee_name>": {
-          "per_phase": [
-            {
-              "phase_range": [<start>, <end>],
-              "contact_state": "swing | stance",
-              "trajectory_intent": "....",
-              "notes": "<qualitative path shape and timing>"
-            }
-          ]
+    // For every FREE (non-contact) limb THIS phase, its control channel + intent.
+    // channel: "world_reach" | "body_swing" | "joint_posture" | "none".
+    "free_limb_mode": [
+      {
+        "phase_range": [<start>, <end>],
+        "limbs": {
+          "<ee_name>": {
+            "channel": "world_reach|body_swing|joint_posture|none",
+            // REQUIRED when channel is "world_reach": the point this limb must
+            // actually ARRIVE at. A grip is reach-constrained exactly like a planted
+            // contact, and is checked the same way.
+            "target_height_m": <number: world z of that point>,
+            "offset_from_base_m": [<dx>, <dy>],  // horizontally, relative to the base
+            "intent": "<what it does — 'reach onto the box', 'swing forward to
+                        step', 'high front kick (joint angles)', 'arm counter-swing'>"
+          }
         }
       }
+    ],
+
+    // Absolute posture of the torso over the cycle (height + orientation + travel).
+    "base_motion": {
+      "per_phase": [
+        {
+          "phase_range": [<start>, <end>],
+          "base_height_m": <number: the base origin height in metres for this phase.
+                            MUST satisfy the reach table in §1b for every contact
+                            this phase declares — this is checked mechanically>,
+          "torso_height": "<e.g. '~0.9 m upright', 'drop to ~0.4 m squat', 'rise onto ledge'>",
+          "torso_orientation": "<upright | pitch forward | inverted | lean into turn | ...>",
+          "torso_pitch_deg": <number: torso pitch in DEGREES. 0 = upright, 90 = torso
+                              horizontal (head forward), 180 = fully inverted. REQUIRED —
+                              the reach bound in §1b depends entirely on it, because the
+                              limb roots are body-frame and rotate with the torso>,
+          "travel": "<forward Xm | in place | up onto surface | ballistic arc | ...>",
+          "notes": "<optional>"
+        }
+      ]
     },
 
-    "constraints": {
-
-      "all_feet_off_ground_consistency": {
-        "enabled": True/False,
-      },
-    },
-
-    ------------------------------------------------------------
-    HANDOFF NOTES
-    ------------------------------------------------------------
+    // Objects to animate (ONLY if the chosen environment has objects; else []).
+    "object_plan": [
+      {
+        "object": "<object name>",
+        "timeline": "<at rest until phase A; grasped and lifted A..B; carried to X;
+                      placed at phase C>"
+      }
+    ],
 
     "handoff_notes_for_implementation": [
-      "<important assumptions the controller must respect>",
+      "<assumptions the coder must respect>",
       "<where numerical tuning is expected>",
-      "<what unit tests are expected to assert>"
+      "<what the unit tests will assert>"
     ]
   }
 }
 
 ------------------------------------------------------------
-3. CRITICAL RULES (DO NOT VIOLATE)
+6. CRITICAL RULES
 ------------------------------------------------------------
 
-- DO NOT invent new controller APIs.
-- DO NOT rename constraint keys.
-- DO NOT specify absolute base pose trajectories.
-- DO NOT use world-frame end-effector paths.
-- DO NOT emit numerical values unless explicitly required by constraints.
-
-- ALWAYS reason like a motion planner, not a test writer.
-- ALWAYS plan contact first, then base motion, then limb motion.
-- EVERY constraint must map cleanly to a unit test.
-- Phase evolution must be smooth and cyclic.
+- Every phase: name the contacts (possibly []) AND the channel of every free limb,
+  decided by COUPLING (see §1): endpoint fixed by the world / a held-or-touched
+  object → world (or body) IK; shape is the point, endpoint free → joint_posture.
+- Contacts first, then base posture, then free-limb motion.
+- ONE boundary set: phase_definition.sub_phases is the timeline; contact_schedule,
+  free_limb_mode, and base_motion.per_phase use EXACTLY those phase_ranges, tiling
+  [0,1] with no gaps and no overlaps. Every boundary sits at a named physical event;
+  every width is the time its motion takes.
+- A one-shot skill (cyclic=false) has DISTINCT start and end poses — do not make it
+  wrap. A cyclic skill returns to its phase-0 pose at phase 1.
+- Choose contact surfaces consistent with the chosen environment.
+- Keep amplitudes and velocities within the physical-summary ceilings.
+- Declare the fidelity_invariants (§3) that pin what makes this the intended
+  motion — as many as the skill needs, no padding — the loop uses them to steer
+  toward the skill, not just toward legality.
 
 ------------------------------------------------------------
-4. MENTAL MODEL
+7. MENTAL MODEL
 ------------------------------------------------------------
 
-Think in this order:
-
-1. What does the robot physically look like over one full cycle?
-2. When is the robot supported, partially supported, or airborne?
-3. How does the base move when velocities are integrated?
-4. How do the end-effectors move relative to the base to realize this motion?
-5. Which invariants must hold for realism, safety, and testability?
+1. List the motion's EVENTS in order: every contact make/break, flight
+   start/end, grasp/release, channel switch, apex, base reversal. These are
+   the phase boundaries — one sub-phase per interval between events, as many
+   as the motion has events, no more. What does the robot look like at each
+   boundary?
+2. Size each sub-phase by TIME, not by count: phase is normalized time, so a
+   window's width is the fraction of the cycle its motion actually takes — a
+   footstrike is short, a glide is long. Boundaries land where the events
+   land, never at equal fractions for their own sake.
+3. At each phase, which contacts bear weight and where do they plant?
+4. What does the torso do (height, orientation, travel)?
+5. For each free limb, which channel realizes its motion — world reach, body
+   swing, or joint posture?
+6. Which invariants must hold for realism, safety, and testability?
 
 Express execution logic, coordination, and intent — never raw math.

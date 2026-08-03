@@ -4,6 +4,7 @@ from agents.code_gen.state import AgentState
 
 from utils.tools import extract_json_from_message
 
+import os
 import json
 
 
@@ -15,6 +16,11 @@ def make_skill_filter_node(agent: BaseAgent, data):
         :param state:
         :return:
         """
+        # Explicit user-requested skills (SKIP_SKILL_FILTER=1) bypass the gate —
+        # the user has already decided they want it (e.g. aerial/expressive moves).
+        if os.environ.get("SKIP_SKILL_FILTER"):
+            return "continue"
+
         system_message = data["system"]  # str
         human_message = data["human"]  # str
 

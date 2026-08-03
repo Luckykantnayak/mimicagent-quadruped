@@ -19,6 +19,168 @@ Its model definition (URDF/MJCF) is provided below:
 
 {urdf}
 
+ROBOT PHYSICAL SUMMARY (limb lengths, end-effector reach, joint position
+limits, and — when the model carries torque/inertia — feasible joint velocity/
+acceleration ceilings plus torso forward-speed, jump, and roll/pitch/yaw-rate
+estimates). Use the end-effector REACH values to keep motion amplitudes within
+what the robot can achieve (never command an EE further from its limb root than
+its reach), and keep the base velocity commands and joint rates within the
+DYNAMICS ceilings when they are given (e.g. do not command a forward speed above
+the running estimate, or a flip faster than the aerial rate). Where the summary
+lists no dynamic limits for a joint/axis, choose values that simply look
+natural:
+
+{robot_summary}
+
+
+
+GROUNDING & NATURALNESS — the simulator is purely KINEMATIC (no gravity). The FRAMEWORK
+enforces the physics, so spend your effort on STYLE and where the contacts go:
+
+- DURATION (set self.freq FIRST): the phase advances as (freq*t)%1, so the WHOLE skill plays
+  in 1.0/self.freq SECONDS. Set self.freq = 1.0/duration_s in __init__, where duration_s is the
+  plan's "duration_s" (the seconds the motion should take). DO NOT leave freq at the 1.0 default
+  for anything with several events — 1.0 means the entire skill in ONE second, which forces
+  every joint to move ~5-10x too fast between frames and FAILS no_teleport + joint_velocity.
+  A multi-step walk/climb wants ~1 s per stance step; a pick-carry-place a few seconds; a whip
+  or kick can be quick. Bigger/slower motion → larger duration_s (smaller freq). This one number
+  sets every joint and base speed, so choose it from the plan, never by default.
+
+- CONTROL CHANNELS — each end-effector, each phase, is driven by exactly ONE of three
+  channels. CHOOSE per limb per phase from what the skill needs; nothing fixes a channel
+  for any particular limb — decide it, don't assume it:
+  * WORLD-frame IK (compute_ee_position_world_frame) — for a position the WORLD fixes:
+    a contact resting on a surface, a foot planted at an absolute spot, OR a limb that must
+    COINCIDE with an external thing — a hand gripping / holding / pushing an object sits AT
+    that object's grip face. Author the absolute world point; IK solves the joints. A floor
+    contact's target z puts the CONTACT POINT (sole/palm) ON the surface: z = surface_height
+    + this EE's ground_offset (NOT z = 0, which sinks the sole a ground_offset below the
+    floor and makes the reach solve mis-read the contact height). On flat ground that is
+    z = ground_offset; on a tread/ledge it is tread_top + ground_offset. USE THESE EXACT
+    per-contact ground_offset VALUES (do not guess or invent one — a wrong offset floats or
+    sinks the contact):
+{contact_offsets} If the limb holds
+    an object, place the object AT the hand's point, so the limb and the object coincide BY
+    CONSTRUCTION (do not drive the limb one way and then guess the object's location
+    separately — they will not meet).
+  * BODY-frame IK (compute_ee_position_body_frame) — for a position most naturally stated
+    RELATIVE to the torso (e.g. a swing foot's arc under the moving hip). IK solves the joints.
+  * JOINT angles (compute_joint_overrides) — for a limb whose CONFIGURATION is the point and
+    whose endpoint is NOT fixed by anything external (an expressive gesture, a wide/deep
+    stance, a kick, an inverted posture). Return None for that end-effector (IK skips it) and
+    set its joint angles. Driving such a limb through a fingertip IK target dissolves its
+    shape into an arbitrary reach. (The morphology card lists this robot's joint axes + signs.)
+  The discriminator is COUPLING: if the endpoint is fixed by the world or by a thing the limb
+  touches/holds, use IK to that point (world- or body-frame as the target is most directly
+  stated); if the shape is the point and nothing external fixes the endpoint, set joint angles.
+  ONE CHANNEL PER LIMB PER PHASE IS ENFORCED: if a limb has a world/body IK target this phase
+  (a stance foot OR a SWINGING foot), the framework IGNORES a compute_joint_overrides value on
+  that limb's joints (it would overwrite the IK solve and drive the limb open-loop THROUGH the
+  floor/an object). To STYLE an IK-driven swing (a pointed toe, a bent knee), the override is a
+  null-space BIAS only — do NOT try to pose an IK limb with overrides. Drive a limb by joints
+  ONLY when it returns None from both IK methods. Also: use the physical-summary's reach values
+  VERBATIM as your reach budgets — never invent leg/arm reach numbers (an inflated reach lets
+  you author an unreachable target the IK then saturates on, dropping the limb into the surface).
+
+- BASE: either the framework re-seats the base onto the declared contacts (contact grounding —
+  then do NOT also author base height, and do not fight base motion to stop sliding), or YOU
+  own the absolute base pose in world frame in update_base_motion (grounding off — then place
+  the base so the declared contacts rest exactly on their surface). The environment declares
+  which grounding is in effect; author to it.
+
+- SUPPORT SET: by default this robot's ground contacts are {support_set} (free EEs: {free_ees}).
+  If this skill bears weight on a DIFFERENT set, set self.support_ees=[...] in __init__,
+  and/or return the per-phase load-bearing names from contacts(phase).
+  Anything not in the support set is free (never grounded or pinned).
+- ANY BODY CAN BE A CONTACT: besides the end-effectors, these body parts may be named in
+  contacts(phase)/support_ees as weight-bearing contacts: {contact_bodies}. Use them when the
+  skill rests on them — a hands-and-knees crawl bears weight on the HANDS and the KNEES (feet
+  lifted), so contacts(phase) returns the hands + knees. These extra bodies are part of the
+  UNION IK ROSTER: PLACE one exactly like a foot — return its world contact point from
+  compute_ee_position_world_frame("<body>", phase) (z = surface + its ground_offset) and IK bends
+  the limb to put it there. (You may instead shape it with joint angles, but returning the world
+  point is simpler and more reliable — prefer it.)
+  EVERY DECLARED CONTACT MUST ACTUALLY REACH ITS SURFACE — declaring it is not enough; the tests
+  FAIL a declared contact left floating in the air (contact_grounded), even if OTHER contacts
+  rest. A contact only reaches the floor if the BASE is low/near enough that the limb can span
+  the gap: author the pelvis LOW enough and the torso PITCHED forward. LOW GROUND POSES GO TO THE
+  BOTTOM OF THE HEIGHT RANGE — a full hands-and-knees crawl sits the pelvis near the FLOOR of this
+  robot's height range ({base_height_range}), NOT mid-range: from a mid-range pelvis the arms cannot reach the floor and the
+  HANDS float (even while the knees rest). Torso pitches well forward so BOTH the hands AND the
+  knees rest on the floor. If a declared contact can't reach its surface from your base pose,
+  LOWER/pitch/step the base until it can (do not reach the limb out to it — that floats it, see
+  REACHABILITY below), or don't declare it. No body may PENETRATE a surface.
+- REACHABILITY — the contact/grip point is the DATUM; move the BASE to reach it, never the
+  point. A declared contact rests at a FIXED surface point (a foot on the floor, a hand on a
+  ledge); a grip sits AT the object. If that point is beyond the limb's reach from the current
+  base, the fix is to author the BASE so the limb root comes within arm's length of it (lower
+  the pelvis / pitch the torso / step closer in update_base_motion) — NOT to move the point.
+    * NEVER wrap a DECLARED CONTACT's or a GRIP's target in `self.reach_limited_target(...)`.
+      That helper PROJECTS an out-of-reach point back up the limb toward the shoulder/hip — so a
+      floor contact you wrapped lifts OFF the floor (the whole robot then reads as hovering and
+      FAILS support_or_ballistic), and a grip you wrapped pulls OFF the object (it FAILS
+      object_grip / the box levitates). Author the true surface/object point and bring the base to it.
+    * reach_limited_target is ONLY for a FREE limb whose exact endpoint does not matter — a
+      styling reach into empty space where you just want the arm near-straight and definitely
+      reachable. If the readout reports "target missed by N cm" on a contact/grip, the BASE is
+      too far from the point — lower/approach the base, don't retime and don't clamp the target.
+- CONTACT HANDOFF (feet<->hands, or any change of the support set): a limb becomes a contact the
+  INSTANT it arrives on the surface; the departing contact releases only AFTER it has clearly
+  LEFT — OVERLAP the two sets so SOME contact is resting at every instant (never declare a contact
+  that is already in the air). An unavoidable unsupported instant (a ballistic kick-up, with no
+  gravity) must be kept BRIEF — shorter than the support law's flight tolerance — so it reads as a
+  handoff, not a hover.
+- CONTINUITY ACROSS SEAMS (no pose snaps): the pose is a piecewise function of phase, so a naive
+  segment boundary TELEPORTS the joints — a limb that switches control channel (joint-override <->
+  IK) or whose target jumps between two segments moves in a SINGLE frame, which the `no_teleport`
+  unit test fails and which reads as an "abrupt pose change" even when the motion is otherwise
+  right. Two general rules:
+    * EASE and MATCH at every boundary: a segment's end value AND its rate must agree with the next
+      segment's start (reuse the same smoothstep ramp; never step a value — or flip a limb's channel
+      — on instantly). A transition is a physical EVENT that occupies a nonzero phase window.
+    * A SWING that is about to become a CONTACT must ARRIVE at its exact foothold (position AND a
+      near-final joint posture) BEFORE it is declared a contact, so the landing needs no snap. The
+      framework crossfades a limb RELEASING a contact, or moving in free space, for you; it does NOT
+      drag a limb that is a declared contact THIS phase (that would slide the contact), so a swing
+      that lands far from its foothold still snaps — that one is yours to author.
+
+- SCENE INTERACTION — DERIVE THE BASE FROM THE CONTACTS, NOT THE OTHER WAY ROUND.
+  Every failure of these skills has the same shape: a contact is DECLARED on an object
+  surface while the base is authored where a STANDING robot would be, so the contact hovers
+  and `contact_grounded` fails 100% of its frames. Work in this order, per phase:
+    1. Write down each declared contact's world z = (its surface height from the scene
+       geometry) + (that contact's ground_offset).
+    2. SOLVE the base pose that makes those reachable — do not pick a base height first.
+    3. Only then author the limb targets.
+  * A CONTACT THAT IS THE BASE ITSELF (the pelvis, the torso — the body the root joint is
+    attached to) does NOT get "reached" by a limb: its height IS the base height. If you
+    declare the pelvis resting on a seat at height H, then the authored base z for that phase
+    MUST be H + pelvis_ground_offset (a seat at 0.44 m => pelvis ~0.44 + offset, NOT the ~0.9 m
+    standing height). Authoring a standing base while declaring a pelvis-on-seat contact is the
+    single most common way a sit fails — the pelvis floats by exactly the difference.
+  * A LIMB contact (hand/foot) on a surface at height H is reachable only if that limb's ROOT
+    (shoulder/hip) ends up within its reach of the contact point. Use the REACH values from the
+    physical summary verbatim; if the contact is out of reach from the base you planned, MOVE
+    THE BASE (lower/step nearer/pitch), never the contact.
+  * NEVER declare a contact you do not also author a target for in that phase. A declared
+    contact with no authored target is a guaranteed `contact_grounded` failure.
+  * When the contact set CHANGES (feet -> hands, floor -> seat), the base must travel between
+    the two reachable regions across a nonzero phase window, releasing the old contact only
+    once the new one is planted.
+- MUST-NOT (each fails a unit test):
+  * NO body part may go BELOW the floor or THROUGH a surface — end-effectors AND knees, shins,
+    elbows, torso. Only the intended contacts rest ON a surface, never through it. Author every
+    contact at the EXACT surface height from the scene geometry. Route each swing limb so its
+    whole path stays above/around obstacles: RISE the limb clear BEFORE advancing it over a step,
+    and never interpolate a foot straight from the floor to a raised surface (that chord passes
+    THROUGH the face). Keep the base at a coherent height per phase — do NOT dive the pelvis to
+    the floor then leap it up.
+  * A planted contact MUST NOT SLIDE horizontally — UNLESS it is a WHEEL, which rolls. To
+    reposition a non-wheel contact, LIFT it off, move it, and set it back down.
+  * Do NOT let the robot FLOAT: some contact stays on a surface at all times, except during a
+    real ballistic jump/flip where the base rises then falls under gravity (accel ≈ -9.8) and
+    lands. Sustained hovering fails.
+
 ROBOT MORPHOLOGY:
 
 {morphology_card}
@@ -141,6 +303,12 @@ Your implementation should follow the same architectural and stylistic patterns.
 {example_skill}
 
 </REFERENCE_EXAMPLES>
+
+CURATED EXEMPLARS — proven hand-authored skills, each demonstrating one technique.
+When the skill you are implementing resembles one of these, follow its channel
+choices (world contact vs body swing vs joint posture) and structure:
+
+{exemplars}
 
 === HUMAN ===
 

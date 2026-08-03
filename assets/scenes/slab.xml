@@ -1,0 +1,27 @@
+<mujoco model="slab scene">
+  <!-- Robot-AGNOSTIC climb environment: floor + a static slab. Composed with a
+       robot at load. (Slab sized ~0.75 m tall for a ~1.6 m humanoid to mantle;
+       a shorter robot would use a scaled variant.) -->
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <global azimuth="-130" elevation="-20" offwidth="1280" offheight="720"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+      markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+    <material name="slab" rgba="0.55 0.55 0.60 1" reflectance="0.05"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 2.5" dir="0 0 -1" directional="true"/>
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+
+    <!-- Static climb slab: top surface at z=0.75, front face at x=1.05. Placed well
+         ahead so the robot WALKS up to it before mantling. -->
+    <geom name="slab" type="box" pos="1.50 0 0.375" size="0.45 0.50 0.375" material="slab"/>
+  </worldbody>
+</mujoco>

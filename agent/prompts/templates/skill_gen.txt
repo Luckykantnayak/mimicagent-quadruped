@@ -57,43 +57,33 @@ KINEMATIC ASSUMPTIONS (CRITICAL)
   - Never describe forces, impulses, or velocities
 
 --------------------------------------------------
-PHASE STRUCTURE (MANDATORY)
+PHASE STRUCTURE
 --------------------------------------------------
 
 Each skill is defined over a continuous phase variable:
 
 - Phase ∈ [0, 1]
 - Phase evolves monotonically
-- Phase = 0 and Phase = 1 represent the same cycle point
+- A skill is EITHER cyclic (phase 1 == phase 0, a gait/dance that repeats) OR
+  one-shot (distinct start and end poses — a pick-and-place, a vault, a climb).
+  Do not force a one-shot skill to be periodic.
 
-Each skill MUST:
-- Contain multiple internal sub-phases
-- Change limb roles across phase
-- Couple base motion and limb motion
-- Remain atomic (one coherent motion idea)
+Sub-phases begin at motion events (a contact change, a reversal, an apex) and
+last as long as their motion takes — never equal fractions by default. Skills
+typically evolve limb roles and couple base to limb motion across phase, but a
+steady glide or constant-role motion with a single sub-phase is also valid.
 
 --------------------------------------------------
-SKILL MIX REQUIREMENT
+SKILL DIVERSITY
 --------------------------------------------------
 
-You must generate a diverse mix of skills:
-
-- Locomotion skills (~50–60%)
-  - Forward / backward / lateral / diagonal
-  - Curved, looping, drifting, gliding
-- Dynamic in-place skills (~20–30%)
-  - Continuous yaw, roll, pitch, base oscillations
-- Stylized / hybrid skills (~10–20%)
-  - Non-canonical coordination patterns
-
-Avoid:
-- Canonical gaits (walk, trot, pace, bound)
-- Static poses
-- Single-limb demonstrations
-- Purely in-place trivial motions
-
-Draw skill families from the morphology description above; you are also
-encouraged to generate novel locomotion skills beyond it.
+Generate a diverse set of skills — vary locomotion (forward / backward / lateral
+/ diagonal / curved / drifting / gliding), in-place dynamics (yaw / roll / pitch
+/ oscillations), and stylized coordination. Do not duplicate a skill already in
+the library. Draw families from the morphology description above; you are
+encouraged to generate novel skills beyond it. Canonical gaits, static balances,
+and in-place motions are all valid targets — include them where they add
+coverage, not by quota.
 
 --------------------------------------------------
 MANDATORY REASONING FIELD

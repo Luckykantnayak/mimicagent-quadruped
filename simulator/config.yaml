@@ -1,13 +1,24 @@
 run:
   mode: "example"            # "example" plays robots/<robot>/example.py;
                              # any other name loads skill_output/<robot>/<mode>/
-  robot: "unitree_go2w"      # must match a robots/<robot>/ directory
+  robot: "humanoid"          # must match a robots/<robot>/ directory
   robots_dir: "robots"       # directory holding per-robot dirs (each with robot.yaml)
   init_position: "home"
   sim_freq: 200
   plot: false
   record: false
-  record_cycles: 2
+  # Fallbacks ONLY — used when the command line says nothing AND the skill has no
+  # motion plan to resolve from (see run.py's precedence). Every GENERATED skill
+  # carries `repetitions` + `environment` in its plan, so replaying one by hand
+  # reproduces the agent's recording; these two only cover the hand-authored
+  # reference skills, which have no plan.
+  record_cycles: 2           # the bare `example` is a CYCLIC walk, so >1 cycle is
+                             # right for it. A ONE-SHOT skill must never use this
+                             # fallback (recording it twice wraps phase 1 -> 0 and
+                             # snaps back to the start pose) — declare `repetitions`
+                             # on its exemplar entry in robot.yaml instead.
+  grounding: "contact"       # matches the implicit `flat` environment the agent
+                             # uses for flat skills (quote it: YAML reads off/on as bool)
 
 # Each skill owns its own base motion (velocity / yaw) inside
 # update_base_motion; the simulator does not command the robot.

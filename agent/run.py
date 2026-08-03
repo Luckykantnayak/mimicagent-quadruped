@@ -11,9 +11,9 @@ from langchain_core.messages import AIMessage
 
 from agents.code_gen.coder_agent import make_coder_node
 from agents.code_gen.motion_planner_agent import make_motion_plan_node
-from agents.code_gen.code_executer_agent import make_code_executer_node
+from agents.code_gen.code_executer_agent import make_code_executer_node, make_finalize_node
 from agents.code_gen.critic_coder_agent import make_critic_coder_node
-from agents.code_gen.routers import make_critic_router, should_continue
+from agents.code_gen.routers import make_critic_router, make_unit_test_router
 from agents.code_gen.run_unit_test import make_unit_test_node
 from agents.code_gen.skill_filter import make_skill_filter_node
 from agents.code_gen.motion_diagnosis_agent import make_motion_diagnosis_agent_node
@@ -30,6 +30,11 @@ import time
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 yaml_path = os.path.join(BASE_DIR, "cfg", "config.yaml")
 cfg = load_yaml_config(yaml_path)
+# Per-process robot override (so a second robot can run in PARALLEL without editing
+# the shared config.yaml). Everything
+# downstream reads cfg["robot"]["name"], so overriding it here propagates fully.
+if os.environ.get("ROBOT_NAME"):
+    cfg["robot"]["name"] = os.environ["ROBOT_NAME"]
 
 #----------------------------------------------------
 #                    LOAD PROMPTS
@@ -58,13 +63,15 @@ def build_graph():
 
     graph.add_node("skill_filter_agent", lambda state: state)
     graph.add_node("motion_planner_agent", make_motion_plan_node(BaseAgent(llm), data=mp_prompt, cfg=cfg))
-    graph.add_node("code_generator_agent", make_coder_node(BaseAgent(llm), data=coder_prompt))
+    graph.add_node("code_generator_agent", make_coder_node(BaseAgent(llm), data=coder_prompt, cfg=cfg))
     graph.add_node("code_executer_agent", make_code_executer_node(cfg))
     graph.add_node("unit_test_router", lambda state: state)
     graph.add_node("unit_test_agent", make_unit_test_node(cfg))
     graph.add_node("critic_router", lambda state: state)
     graph.add_node("motion_diagnosis_agent", make_motion_diagnosis_agent_node(BaseAgent(llm), data=motion_diagnosis_prompt, cfg=cfg))
     graph.add_node("critic_coder_agent", make_critic_coder_node(BaseAgent(llm), data=critic_prompt, cfg=cfg))
+    graph.add_node("finalize_agent", make_finalize_node(cfg))
+    graph.add_edge("finalize_agent", END)
 
     #----------------------------------------------------
     #                    ADD EDGES
@@ -92,10 +99,12 @@ def build_graph():
 
     graph.add_conditional_edges(
         "unit_test_router",
-        should_continue,
+        make_unit_test_router(cfg),
         {
             "continue": "unit_test_agent",
-            "end_skill": END,
+            "repair": "critic_coder_agent",
+            "replan": "motion_planner_agent",   # repeated identical lint hard-fail = a plan bug
+            "end_skill": "finalize_agent",
         }
     )
 
@@ -104,7 +113,8 @@ def build_graph():
         make_critic_router(cfg),
         {
             "loop": "motion_diagnosis_agent",
-            "end_skill": END,
+            "replan": "motion_planner_agent",   # step back and re-decide the interface
+            "end_skill": "finalize_agent",
         }
     )
 
@@ -135,8 +145,6 @@ def run_all_skills(skill_version, skills=None):
     with open("graph_coder.png", "wb") as f:
         f.write(app.get_graph().draw_mermaid_png())
 
-    if skills is None:
-        skills = load_all_skills(cfg, skill_version)
     all_tokens = []
     all_time = []
     all_skills = []
@@ -177,29 +185,6 @@ def run_all_skills(skill_version, skills=None):
     return all_tokens, all_time, all_skills
 
 
-# ----------------------------------------------------
-# LOAD ALL SKILLS
-# ----------------------------------------------------
-
-def load_all_skills(cfg, skill_version):
-    # Batch mode reads the archived input library.
-    path = os.path.join(
-        cfg["paths"]["skill_library"],
-        skill_version,
-        "all_skills.json",
-    )
-
-    with open(path, "r") as f:
-        data = json.load(f)
-
-    if isinstance(data, dict):
-        return data.get("skills", [])
-    elif isinstance(data, list):
-        return data
-    else:
-        raise ValueError("Invalid all_skills.json format")
-
-
 def save_token_usage_time(cfg, all_token_usage, all_time_taken, all_skills):
     robot = cfg["robot"]["name"]
 
@@ -227,13 +212,16 @@ if __name__ == "__main__":
     parser.add_argument("--version", default=skill_folder, help="Output/skill-library version folder.")
     args = parser.parse_args()
 
-    if args.skill:
-        formatter_prompt = load_prompt("skill_formatter", cfg)
-        skill = prepare_skill(BaseAgent(llm), formatter_prompt, args.skill, name=args.name)
-        print("\nSkill:\n" + json.dumps(skill, indent=2))
-        skills = [skill]
-    else:
-        skills = None
+    if not args.skill:
+        # Batch mode read a bundled input skill library (archive/), which has been
+        # removed — pass a single skill with --skill "<description>" --name <NAME>.
+        parser.error("--skill is required: the batch input library was removed. "
+                     'Run e.g.  python run.py --skill "the robot trots forward" --name SKILL_TROT')
+
+    formatter_prompt = load_prompt("skill_formatter", cfg)
+    skill = prepare_skill(BaseAgent(llm), formatter_prompt, args.skill, name=args.name)
+    print("\nSkill:\n" + json.dumps(skill, indent=2))
+    skills = [skill]
 
     token_usage, time_taken, skills = run_all_skills(skill_version=args.version, skills=skills)
     save_token_usage_time(cfg, token_usage, time_taken, skills)

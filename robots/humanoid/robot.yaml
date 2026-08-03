@@ -1,18 +1,47 @@
 # robots/humanoid/robot.yaml
+kind: humanoid
 # 28-DoF humanoid (two-footed biped; arms/torso/neck not IK-driven)
 # Model: MimicKit humanoid.xml (limits transcribed from the MJCF)
 
 name: humanoid
-scene_xml: robots/humanoid/assets/scene.xml
-mjcf: robots/humanoid/assets/humanoid.xml
+scene_xml: assets/scenes/flat.xml
+mjcf: assets/robots/humanoid/humanoid.xml
 base_body: pelvis
 sim_freq: 200
+null_space_gain: 0.02   # 28 DoF: relax the rest-pose pull so arms/legs reach far
 
-# Ordered end-effectors. Only the two feet are IK targets.
+# Ordered end-effectors. Feet are ground contacts; hands are free IK targets
+# (contact: false -> excluded from ground-penetration / airtime checks) so
+# skills can pose the arms expressively by authoring hand positions.
 # ground_offset = distance from foot body origin to the sole.
 end_effectors:
-  - {name: right_foot, body: right_foot, ground_offset: 0.05}
-  - {name: left_foot,  body: left_foot,  ground_offset: 0.05}
+  - {name: right_foot, body: right_foot, site: ee_right_foot, ground_offset: 0.05}
+  - {name: left_foot,  body: left_foot, site: ee_left_foot,  ground_offset: 0.05}
+  - {name: right_hand, body: right_hand, site: ee_right_hand, contact: false, ground_offset: 0.04}
+  - {name: left_hand,  body: left_hand, site: ee_left_hand,  contact: false, ground_offset: 0.04}
+
+# MAXIMAL contact roster — every body part the humanoid may bear weight on, so
+# skills are VERSATILE: a SIT rests the pelvis on a seat; a PLANK/elbow-lever rests
+# the forearms; a bridge/headstand rests the head; a crawl/kneel rests the shins
+# (knees) and thighs; a shoulder-roll rests the upper arms. These are part of the
+# UNION IK ROSTER: give one a world target (compute_ee_position_world_frame) and IK
+# PLACES it like a foot; return None and it is FK-only (position from the joints).
+# The framework grounds to any DECLARED contact and the contact checks include it;
+# NO body (these included) may penetrate a surface. ground_offset = body origin ->
+# the contact surface (a limb rests on its side ~ its capsule radius; the pelvis/
+# torso/head rest ~ their half-thickness).
+contact_bodies:
+  - {name: pelvis,          body: pelvis,          ground_offset: 0.09}   # buttocks (SIT) / hips
+  - {name: torso,           body: torso,           ground_offset: 0.12}   # back/chest (bridge, supine)
+  - {name: head,            body: head,            ground_offset: 0.10}   # crown/side (headstand, bridge)
+  - {name: right_knee,      body: right_shin,      ground_offset: 0.06}   # kneel / crawl
+  - {name: left_knee,       body: left_shin,       ground_offset: 0.06}
+  - {name: right_thigh,     body: right_thigh,     ground_offset: 0.06}   # kneeling-sit / seiza
+  - {name: left_thigh,      body: left_thigh,      ground_offset: 0.06}
+  - {name: right_forearm,   body: right_lower_arm, ground_offset: 0.045}  # forearm plank / elbow lever
+  - {name: left_forearm,    body: left_lower_arm,  ground_offset: 0.045}
+  - {name: right_upper_arm, body: right_upper_arm, ground_offset: 0.05}   # shoulder roll / side lie
+  - {name: left_upper_arm,  body: left_upper_arm,  ground_offset: 0.05}
 
 # In model qpos[7:] order (what gets recorded).
 joints:
@@ -45,25 +74,122 @@ joints:
   - {name: left_ankle_y,     limits: [-0.9599, 0.9599]}
   - {name: left_ankle_z,     limits: [-0.6981, 0.6981]}
 
-base_height_range: [0.35, 1.60]
+# Wide enough to permit aerial skills (jumps/flips): the pelvis legitimately
+# rises well above standing height at a leap apex and drops in a deep landing
+# crouch. Standing height is ~0.88 m; a front flip peaks near ~1.7 m.
+base_height_range: [0.30, 2.20]
 
 camera: {lookat: [0.0, 0.0, 0.9], distance: 4.0, azimuth: 90, elevation: -15}
 
+# Named environments a skill may run in. 'flat' (plain floor, contact grounding,
+# no objects) is always available implicitly and need not be listed. The planner
+# picks ONE by name; the executer then runs the sim with that scene + grounding,
+# and objects are animated by the skill's compute_object_poses(phase).
+environments:
+  - name: carry_box
+    scene: assets/scenes/carry.xml
+    grounding: "off"        # the skill sets an absolute base trajectory (it must SQUAT
+                            # to reach the floor box, which contact-registration would
+                            # cancel by re-seating the base up to the feet); the reach
+                            # caveat + pickup-precondition laws keep grounding-off honest
+    objects:
+      - name: box           # a mocap box the skill drives via compute_object_poses
+        type: box
+        half_size: 0.12                 # 0.24 m cube
+        rest_pos: [1.10, 0.0, 0.12]     # resting on the floor, ahead (walk to it)
+        description: "A MOVABLE crate resting on the floor ahead (exact pose in the scene
+          geometry). It affords the CARRY topology — grip it at its faces (the hands must REACH
+          the grip point, not float short), declare it held (attachments), move it, release it.
+          Where it goes is the skill's goal; derive the stance from the box coordinates + arm reach."
+    description: "A MOVABLE crate on the floor ahead. Grounding off. The GOAL comes from the skill
+      intent — apply the CARRY goal-state topology from the planner laws, taking coordinates from
+      the scene geometry."
+  - name: stairs
+    scene: assets/scenes/stairs.xml
+    grounding: "off"        # feet land at raised TREAD heights; skill owns the base
+    objects: []
+    description: "A staircase ahead: a series of SOLID steps, each tread a support surface, each
+      riser a collision face (exact profile in the scene geometry). Grounding off — author feet
+      in the WORLD frame and the base absolutely. The GOAL comes from the skill intent (climb the
+      stairs, ...) — apply the matching GOAL-STATE TOPOLOGY from the planner laws, taking
+      coordinates from the scene geometry."
+  - name: ledge
+    scene: assets/scenes/slab.xml
+    grounding: "off"        # hands/feet land on the raised ledge; skill owns the base
+    objects: []
+    description: "A raised platform (slab/ledge) ahead: a SOLID block whose TOP is a support
+      surface and whose FACES are collision walls (exact geometry + front-face collision
+      clearance in the scene geometry). Grounding off — author feet/hands in the WORLD frame and
+      the base absolutely. The GOAL comes from the skill intent (climb onto it, vault it, ...) —
+      apply the matching GOAL-STATE TOPOLOGY from the planner laws, taking coordinates from the
+      scene geometry."
+  - name: chair
+    scene: assets/scenes/chair.xml
+    grounding: "off"        # the robot lowers its pelvis onto a raised SEAT + feet on
+                            # the floor (two contact heights); author the base absolutely
+    objects: []
+    description: "A chair ahead: a SEAT panel (a support surface) and a BACKREST panel, both
+      SOLID to the floor (exact geometry in the scene geometry). Grounding off — author the base
+      absolutely. The GOAL comes from the skill intent (sit on it, climb it, ...) — apply the
+      matching GOAL-STATE TOPOLOGY from the planner laws, taking all coordinates from the scene
+      geometry."
+
+# Curated hand-authored reference skills (tracked, in robots/humanoid/exemplars/),
+# kept SEPARATE from agent-generated output (gitignored skill_output/). Each is a
+# worked example of one technique the coder can pattern-match. `environment` names
+# the scene it plays in (so `--mode <name>` auto-loads that scene + grounding).
+exemplars:
+  - name: SKILL_CARRYBOX
+    environment: carry_box
+    tags: [object-manipulation, pick-place, world-reach-hands, absolute-base]
+    summary: "Squat, grip a box's two side faces with the hands (world_reach),
+      lift and carry it forward, then place it — the box is animated via
+      compute_object_poses and grounding is off (skill owns the base height)."
+  - name: SKILL_CLIMB
+    environment: ledge
+    tags: [mantle, surface-ascent, hands-on-lip, feet-smear, absolute-base]
+    summary: "Mantle onto a tall ledge: hands reach over the lip (world contacts),
+      feet smear the vertical face, and the base rises up onto the top."
+
 example_skill: robots/humanoid/example.py
 robot_card: |
-  The robot is a 28-DoF humanoid biped. The end-effectors are the two feet,
-  named right_foot and left_foot — these are the ONLY inverse-kinematics
-  targets. The pelvis stands at about 0.88 m; step length is around 0.2-0.4 m.
+  The robot is a 28-DoF humanoid biped with FOUR inverse-kinematics end-effectors:
+  right_foot, left_foot, right_hand, left_hand. The pelvis stands at about 0.88 m.
   All motion is purely kinematic.
 
-  Arms, torso, and neck are NOT driven by IK. To move them, a skill must set
-  explicit joint angles per step by overriding compute_joint_overrides(phase)
-  to return {joint_name: angle_radians}. If a joint is never overridden, the
-  IK null-space keeps it near the standing pose. Use joint overrides for any
-  skill that needs arm swings, torso lean/twist, waving, or head motion.
+  This card states ONLY the robot's KINEMATIC FACTS — what each joint does and its
+  range. WHICH control channel drives a given limb in a given phase — a world-frame
+  IK target, a body-frame IK target, or a direct joint angle — is decided per the
+  skill by the planner and coder; nothing here prescribes it for any limb.
 
-  Typical coordination: alternating single support (walk/run: one foot in
-  stance while the other swings), double support (squats, jumps, leans),
-  hops (both feet leave the ground together). Keep the pelvis inside the
-  support region during slow motions; swing feet must lift clear of the
-  ground and land ahead of the hip in walking gaits.
+  JOINT AXES (radians; rest = standing, arms hanging at the sides). The LEFT limb
+  MIRRORS the right: use the RIGHT sign shown and the OPPOSITE sign for the LEFT.
+  Keep every angle within the joint limits listed above.
+
+  Arms:
+    * shoulder_x — raise the arm SIDEWAYS/overhead (frontal plane): right -1.7 ->
+        straight up overhead; +0.4 -> straight out to the side; 0 -> hanging.
+    * shoulder_z — swing the arm FORWARD/back: right +1.0 -> hand forward at
+        shoulder height; +1.8 -> forward-and-up; -0.9 -> reaching back; 0 neutral.
+    * elbow — bend the forearm: right 0 straight -> +1.8 bent ~90 deg. (The LEFT
+        elbow is negative: -1.8 bent.)
+    * shoulder_y — minor arm twist; usually 0.
+
+  Legs:
+    * hip_y — swing the leg FORWARD/back: right negative -> forward/up (e.g. -1.9
+        a high forward reach of the thigh); positive -> back/up.
+    * hip_x — spread the leg SIDEWAYS: right negative -> out to the right (e.g.
+        -0.5 wide); left mirrors (+0.5 out to the left).
+    * hip_z — rotate the leg about its long axis.
+    * knee — 0 straight -> ~1.0-1.2 deeply bent; larger = deeper.
+    * ankle_x/y/z — roll, pitch, and yaw the foot; ankle_y ~0.3 keeps a sole flat
+        as the knee bends.
+
+  Torso and head:
+    * abdomen_x/y/z — lean (side), pitch (forward/back), and twist the torso.
+    * neck_x/y/z — tilt, nod, and turn the head.
+
+  Any joint you do not set stays at the natural standing pose.
+
+  Geometry note: the feet point straight DOWN from the pelvis at rest, so an
+  inverted base points them up.

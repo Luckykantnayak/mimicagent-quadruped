@@ -34,6 +34,7 @@ def make_critic_coder_node(coder_agent: BaseAgent, data, cfg):
 
         return {
             "messages": [output],
+            "last_prompt": get_buffer_string(messages),   # exact prompt sent (saved per version)
             'skill_name': state['skill_name'],
             'skill_version': state['skill_version'],
             'success': state['success'],

@@ -6,6 +6,9 @@ __pycache__/
 # Generated agent output (skills, trajectories, plans, reports) — regenerable
 /skill_output/
 
+# Archived old skills + input skill library — reference only, not needed to run
+/archive/
+/archive_output/
 
 # C extensions
 *.so

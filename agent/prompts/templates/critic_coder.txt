@@ -24,44 +24,70 @@ ROBOT & EXECUTION CONTEXT
 - All motion is phase-based and continuous
 - The actuated joints, in order, are: {joint_order}
 
+NON-PENETRATION (hard law): NO part of the robot — end-effectors AND knees, shins,
+elbows, torso — may go BELOW the floor or INTO any surface (a step tread, a slab, a
+wall). Author every contact ON a real surface at its EXACT height (from the scene
+geometry you are given), and route each swing limb so its whole path stays above/
+around obstacles: RISE the limb clear before advancing it over a step, and never
+interpolate a foot straight from the floor to a raised surface (that chord passes
+THROUGH the obstacle's face). Keep the base at a coherent height for the phase — do
+not dive the pelvis to the floor and then leap it up. The framework will clamp a
+target out of a surface and log it, but a clamped/again-penetrating motion still
+FAILS surface_penetration — get the path right in the code.
+
 ==================================================
 FAILURE MODES YOU MUST HANDLE
 ==================================================
 
-STRUCTURAL FAIL
-(passed_all_discrete == false)
+PHYSICS-FLOOR FAIL (a hard physical law is broken)
 
-- One or more hard constraints are violated
-- Fix all discrete violations
-- Modify amplitudes, phase timing, end-effector heights, offsets, or base motion
-- Ensure joint limits, closure, airtime, and safety constraints pass
-- Simplify motion if needed to regain validity
+- One or more core checks fail: a body part through a surface, a planted contact
+  sliding, an unsupported hover, a joint out of range, a single-frame joint
+  teleport, or a joint sustaining an infeasible velocity.
+- Fix the GEOMETRY that causes it — amplitudes, phase timing, contact heights,
+  base motion, or the control channel of the offending limb. Simplify if needed
+  to regain legality, but keep the skill's intent.
 
-QUALITY FAIL
-(passed_all_discrete == true AND passed_smoothness == false)
+FIDELITY FAIL (it is legal but does not look like the skill)
 
-- Motion is valid but insufficiently smooth
-- Preserve the skill’s semantic structure
-- Improve smoothness using:
-  - Phase-continuous trajectories
-  - Skill-conditioned smoothness envelopes
-  - Energy-normalized velocity, acceleration, and jerk
-- Reduce spikes without flattening the motion
-- Do NOT change the intended behavior of the skill
+- One or more planner-declared fidelity invariants fail (it must MOVE, the gait
+  must COORDINATE, the object must stay HELD, the climb must RISE).
+- Reshape the motion so the invariant holds — WITHOUT weakening it (you may never
+  edit an invariant). Preserve every defining feature of the skill.
 
 ==================================================
 HOW TO USE THE FEEDBACK
 ==================================================
 
 The evaluation report provides:
-- Discrete violations
-- Smoothness penalties
-- Envelope and percentile thresholds
+- A GEOMETRIC MOTION READOUT (`motion_readout`): what the robot ACTUALLY did — base
+  path/height/orientation, each limb's contact timeline + swing lift + in-contact
+  drift, gait phase offsets, object path. READ THIS FIRST — it is your view of the
+  render. Fix the motion you SEE, not just the lamp that is red.
+- `version_history`: prior attempts' scores + failures. If two checks keep trading
+  off across versions (one fixed, the other re-broken), a local patch will just
+  flip it back — REWRITE that limb/phase's structure holistically instead.
+- physics_floor_failures (hard laws) and fidelity_failures (does it look like the
+  skill — e.g. it must MOVE, the gait must COORDINATE, the object must stay HELD).
 
 You must:
-- Address only the reported issues
-- Keep changes minimal and localized
-- Avoid unnecessary refactors
+- Address the reported issues — physics-floor first, then fidelity
+- Prefer minimal, localized changes — UNLESS the version_history shows oscillation
+  or the diagnosis flags a structural/interface fault, in which case rewrite that
+  part cleanly rather than layering another patch (patches fighting each other is
+  exactly what makes checks oscillate)
+- When the diagnosis identifies an INTERFACE MISMATCH — a limb on the wrong control
+  channel (e.g. a hand that must GRIP an object is joint-driven instead of world-IK
+  to it, so the object floats) — restructuring THAT limb's channel IS the fix.
+  Switch it (world-frame IK / body-frame IK / joint angles) and, for a held object,
+  anchor the object to the limb via attachments().
+
+You must NOT:
+- Add, remove, weaken, or re-parameterize the FIDELITY INVARIANTS or the contact
+  schedule — those belong to the planner, not to you. Your job is to make the CODE
+  satisfy them, never to change the test. (Changing the yardstick to pass is not a
+  fix.) If an invariant seems genuinely wrong for the skill, say so in a comment and
+  make the motion as faithful as you can; the planner re-decides invariants, you do not.
 
 ==================================================
 SEMANTIC CONSTRAINTS
@@ -84,7 +110,9 @@ HARD CONSTRAINTS
 - Output ONLY a single Python file
 - No markdown
 - No explanations or reasoning text
-- Do NOT change class names or interfaces
+- Do NOT change the class name or the BaseMotionGenerator METHOD SIGNATURES (the
+  API). You MAY change WHICH control channel a limb uses inside those methods
+  (world-frame IK / body-frame IK / joint angles) — that is not an interface change.
 - Do NOT invent new APIs or base classes
 - Do NOT reference tests or evaluators explicitly
 - Do NOT introduce dynamics, forces, or controllers
@@ -97,8 +125,7 @@ OUTPUT EXPECTATION
 ==================================================
 
 Return the rewritten skill code that:
-- Passes all hard constraints
-- Satisfies smoothness requirements
+- Passes the physics-floor checks and the fidelity invariants
 - Preserves the original motion intent
 - Obeys the semantic constraints defined in the skill description
 

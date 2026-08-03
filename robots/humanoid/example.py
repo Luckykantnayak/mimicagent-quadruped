@@ -1,3 +1,4 @@
+import numpy as np
 from utils.math_utils import *
 from motion.base import BaseMotionGenerator
 
@@ -6,40 +7,49 @@ class WalkingMotionGenerator(BaseMotionGenerator):
     """
     Straight-line biped walk (humanoid reference).
 
-    The two feet (the only IK end-effectors) alternate stance and swing half a
-    cycle apart, each authored in the BODY frame: the stance foot sweeps
-    backward under the pelvis while the swing foot lifts and steps forward.
-    The pelvis translates forward in the WORLD frame at a speed matched to the
-    stance sweep, so the stance foot stays planted. The arms are lowered to
-    hang at the sides and swing fore-aft via joint overrides (they are not IK
-    end-effectors), anti-phase to each other and contralateral to the legs, as
-    in a natural gait. No turning.
+    THIS skill picks two of the three control channels. The choice is per limb
+    per phase and follows from COUPLING — what actually determines where the limb
+    goes — not from the morphology. A different skill on this same robot makes a
+    different choice (a mantle puts the hands on WORLD targets; a squat-and-grip
+    puts them on the object). Here:
+
+      * FEET use BODY-frame IK — authored relative to the torso, because a swing
+        foot's target is fixed by the torso, not by the world. They alternate
+        stance/swing half a cycle apart and IK solves the legs.
+
+      * ARMS are JOINT-driven — the hands are NOT IK targets. Their body-frame
+        target is None (the base-class default), so IK skips them, and the
+        shoulders swing fore-aft through compute_joint_overrides, each arm
+        contralateral to the same-side leg. The arm's SHAPE is the point and its
+        fingertip is unconstrained, so driving the shoulder ANGLE keeps the swing
+        — where IK on a fingertip target would dissolve it into whatever reaches
+        that point.
+
+      * WORLD-frame IK is unused here: on flat ground nothing pins a foot or hand
+        to a fixed world location. That is a property of this skill, not of the
+        robot.
+
+    The pelvis translates forward in the world frame, matched to the stance sweep
+    so the stance foot stays planted; the head turns slightly with the stride.
+    No turning.
     """
 
     def __init__(self, init_ee_pos, freq=1.0):
         super().__init__(init_ee_pos, freq=freq)
 
         self.duty = 0.6
-        self.step_length = 0.30    # fore-aft foot travel (m)
-        self.step_height = 0.10    # peak swing-foot lift (m)
+        self.step_length = 0.30     # fore-aft foot travel (m)
+        self.step_height = 0.10     # peak swing-foot lift (m)
+        self.arm_swing = 0.5        # fore-aft shoulder swing (radians)
 
-        # Left and right feet are half a cycle out of phase.
-        self.phase_offsets = {
-            ee: (0.0 if "right" in ee else 0.5) for ee in self.ee_names
-        }
+        # feet alternate half a cycle apart
+        self.foot_offsets = {"right_foot": 0.0, "left_foot": 0.5}
 
-        # Arm posture (the zero pose is a T-pose, so adduct the shoulders to
-        # bring the arms down to the sides, then swing them fore-aft).
-        self.arm_down = 1.45       # shoulder_x adduction: arm hangs at the side
-        self.arm_swing_amp = 0.4   # shoulder_z fore-aft swing amplitude (rad)
-        self.elbow_bend = 0.35     # slight constant elbow flexion (rad)
-
-        # Forward speed matched to the stance sweep -> stance foot stays planted.
+        # forward speed matched to the stance sweep -> stance foot stays planted
         self.forward_speed = self.step_length * self.freq / self.duty
 
     def update_base_motion(self, phase, dt):
-        # Constant forward velocity along the body's heading, expressed in the
-        # world frame; the pelvis pose is integrated in the world frame.
+        # constant forward velocity along the heading, integrated in the world frame
         vel_world = quat_to_rotation_matrix(self.root_quat) @ np.array(
             [self.forward_speed, 0.0, 0.0]
         )
@@ -48,33 +58,32 @@ class WalkingMotionGenerator(BaseMotionGenerator):
         )
 
     def compute_ee_position_body_frame(self, ee_name, phase):
-        ee_phase = (phase + self.phase_offsets[ee_name]) % 1.0
-        foot = self.base_ee_pos[ee_name].copy()
+        # Only the FEET are IK-driven. Returning None for the hands tells IK to
+        # skip them — the arms are shaped by compute_joint_overrides below.
+        if not ee_name.endswith("foot"):
+            return None
 
+        pos = self.base_ee_pos[ee_name].copy()
+        ee_phase = (phase + self.foot_offsets[ee_name]) % 1.0
         if ee_phase < self.duty:
-            # Stance: foot planted, sweeps backward under the pelvis.
+            # stance: foot planted, sweeps backward under the pelvis
             progress = ee_phase / self.duty
-            foot[0] -= self.step_length * (progress - 0.5)
+            pos[0] -= self.step_length * (progress - 0.5)
         else:
-            # Swing: foot lifts and steps forward.
+            # swing: foot lifts and steps forward
             progress = (ee_phase - self.duty) / (1.0 - self.duty)
-            foot[0] += self.step_length * (progress - 0.5)
-            foot[2] += self.step_height * np.sin(np.pi * progress)
-
-        return foot
+            pos[0] += self.step_length * (progress - 0.5)
+            pos[2] += self.step_height * np.sin(np.pi * progress)
+        return pos
 
     def compute_joint_overrides(self, phase):
-        # Shoulders are adducted (shoulder_x) so the arms hang at the sides;
-        # the fore-aft swing is shoulder_z. Because the left shoulder mirrors
-        # the right, the same shoulder_z value swings the two arms in
-        # anti-phase — right arm back while the right (leading) leg is forward,
-        # i.e. contralateral. Elbows carry a slight constant bend.
-        swing = -self.arm_swing_amp * np.cos(2.0 * np.pi * phase)
+        # Arms swing fore-aft on the shoulder_z (flexion) joint. Both shoulders
+        # take the SAME signed value: because the left arm mirrors the right,
+        # one goes forward while the other goes back — a natural anti-phase swing,
+        # contralateral to the legs. The head turns subtly with the stride.
+        swing = self.arm_swing * np.cos(2.0 * np.pi * phase)
         return {
-            "right_shoulder_x": self.arm_down,
-            "left_shoulder_x": -self.arm_down,
             "right_shoulder_z": swing,
             "left_shoulder_z": swing,
-            "right_elbow": self.elbow_bend,
-            "left_elbow": -self.elbow_bend,
+            "neck_z": 0.10 * np.sin(2.0 * np.pi * phase),
         }

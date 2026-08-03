@@ -3,22 +3,29 @@ dataset:
   skills_per_generation: 20
 
 llm:
-  model: claude-sonnet-4-5-20250929
+  model: claude-sonnet-5
   temperature: 1.0
-  max_tokens: 16000
+  max_tokens: 24000     # raised 16000->24000: the STAIRS plan alone is ~14.7k tokens, so a
+                        # slightly more detailed request truncated the reply BEFORE its closing
+                        # ```-fence. The fence regex then failed to match, the raw text (starting
+                        # '```json') was not valid JSON, and the planner node died with
+                        # 'Expecting value: line 1 column 1' on all 3 retries — deterministic,
+                        # not a bad draw. Costs nothing on skills whose plans are shorter.
 
 robot:
-  name: unitree_go2w         # must match a robots/<name>/ directory
+  name: humanoid               # must match a robots/<name>/ directory
 
 paths:
   prompts_dir: prompts
   robots_dir: ../robots
   simulator_dir: ..                       # repo root (where simulator/run.py is invoked)
   skill_output_dir: ../skill_output       # generated per-robot: <robot>/<skill>/
-  skill_library: ../archive/skill_library # input library for batch mode (archived)
 
 simulator:
   python_bin: python
 
 critic:
-  max_iters: 5
+  max_iters: 10          # raised 7->10: measured on a carry-box regeneration, the loop
+                       # was still improving BOTH the plan (reach over-reach 1.71x->1.35x)
+                       # and the motion when it hit the cap. The floor alone can consume 5,
+                       # and the once-only replan needs room after it.

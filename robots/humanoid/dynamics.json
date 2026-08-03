@@ -1,0 +1,116 @@
+{
+  "vel": {
+    "abdomen_x": 11.791,
+    "abdomen_y": 14.867,
+    "abdomen_z": 24.06,
+    "neck_x": 17.474,
+    "neck_y": 17.473,
+    "neck_z": 40.438,
+    "right_shoulder_x": 24.593,
+    "right_shoulder_y": 76.051,
+    "right_shoulder_z": 22.967,
+    "right_elbow": 39.583,
+    "left_shoulder_x": 24.593,
+    "left_shoulder_y": 76.051,
+    "left_shoulder_z": 22.967,
+    "left_elbow": 39.583,
+    "right_hip_x": 8.405,
+    "right_hip_y": 12.505,
+    "right_hip_z": 76.293,
+    "right_knee": 23.771,
+    "right_ankle_x": 64.201,
+    "right_ankle_y": 74.733,
+    "right_ankle_z": 64.063,
+    "left_hip_x": 8.405,
+    "left_hip_y": 12.505,
+    "left_hip_z": 76.293,
+    "left_knee": 23.771,
+    "left_ankle_x": 64.201,
+    "left_ankle_y": 74.733,
+    "left_ankle_z": 64.063
+  },
+  "accel": {
+    "abdomen_x": 132.755,
+    "abdomen_y": 168.842,
+    "abdomen_z": 473.847,
+    "neck_x": 349.872,
+    "neck_y": 349.872,
+    "neck_z": 2082.034,
+    "right_shoulder_x": 277.23,
+    "right_shoulder_y": 3682.02,
+    "right_shoulder_z": 274.748,
+    "right_elbow": 1122.185,
+    "left_shoulder_x": 277.23,
+    "left_shoulder_y": 3682.02,
+    "left_shoulder_z": 274.748,
+    "left_elbow": 1122.185,
+    "right_hip_x": 89.956,
+    "right_hip_y": 89.598,
+    "right_hip_z": 5558.278,
+    "right_knee": 404.712,
+    "right_ankle_x": 7872.029,
+    "right_ankle_y": 5818.372,
+    "right_ankle_z": 5878.861,
+    "left_hip_x": 89.956,
+    "left_hip_y": 89.598,
+    "left_hip_z": 5558.278,
+    "left_knee": 404.712,
+    "left_ankle_x": 7872.029,
+    "left_ankle_y": 5818.372,
+    "left_ankle_z": 5878.861
+  },
+  "jump": {
+    "height": 0.247,
+    "flight_time": 0.449
+  },
+  "reach": {
+    "right_foot": {
+      "reach": 0.831,
+      "root_dz": 0.0,
+      "root_off": [
+        0.0,
+        -0.085,
+        0.0
+      ],
+      "ground_offset": 0.05,
+      "max_base_over_surface": 0.881,
+      "drop_below_base_upright": 0.781
+    },
+    "left_foot": {
+      "reach": 0.831,
+      "root_dz": 0.0,
+      "root_off": [
+        0.0,
+        0.085,
+        0.0
+      ],
+      "ground_offset": 0.05,
+      "max_base_over_surface": 0.881,
+      "drop_below_base_upright": 0.781
+    },
+    "right_hand": {
+      "reach": 0.534,
+      "root_dz": 0.48,
+      "root_off": [
+        -0.024,
+        -0.183,
+        0.48
+      ],
+      "ground_offset": 0.04,
+      "max_base_over_surface": 0.094,
+      "drop_below_base_upright": 0.014
+    },
+    "left_hand": {
+      "reach": 0.534,
+      "root_dz": 0.48,
+      "root_off": [
+        -0.024,
+        0.183,
+        0.48
+      ],
+      "ground_offset": 0.04,
+      "max_base_over_surface": 0.094,
+      "drop_below_base_upright": 0.014
+    }
+  }
+}

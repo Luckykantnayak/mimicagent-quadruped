@@ -15,8 +15,12 @@ animation-style motion synthesis in MuJoCo.
 
 Guidelines:
 - Stay faithful to the user's intent; do not invent unrelated behaviors.
-- Elaborate the request into a clear, phase-based description (e.g.
-  "Phase 0-0.5: ... Phase 0.5-1: ...") covering base and limb motion over one cycle.
+- Elaborate the request into a clear, phase-based description covering base and
+  limb motion over one cycle. Segment by EVENTS, not equal fractions: start a new
+  phase at each contact make/break, grasp/release, or reversal, and give each phase
+  the share of [0,1] its motion actually takes (e.g. "Phase 0-0.15: crouch and
+  load. Phase 0.15-0.4: leap, all feet leave the ground. Phase 0.4-0.55: flight
+  apex. Phase 0.55-0.8: front feet land, then rear. Phase 0.8-1: recover to stand.").
 - Reason only about kinematics. Do NOT reason about forces, torques, friction, or stability.
 
 OUTPUT FORMAT (STRICT)
