@@ -1445,11 +1445,16 @@ def _inv_contact_over_surface(traj, spec, dt, p):
     out = np.maximum(_out(seg[:, 0], xr), _out(seg[:, 1], yr))
     worst = float(out.min())        # BEST frame in the window: did it EVER get over it?
     tol = float(p.get("tol", 0.05))
+    # NOTE: build the verdict OUTSIDE the f-string. A multi-line implicit string
+    # concatenation inside an f-string expression only parses on Python 3.12+
+    # (PEP 701); this project runs on 3.11, where it is a SyntaxError.
+    verdict = ("over it" if worst <= tol else
+               "NEVER over it, so it never landed ON the surface; move the BASE so the "
+               "body is above the footprint, not merely at its height")
+    ybit = "" if yr is None else " y" + str(yr)
     return (worst <= tol, round(worst, 3), tol,
             (f"'{name}' comes within {worst*100:.0f} cm of the target footprint "
-             f"(x{xr}{'' if yr is None else ' y'+str(yr)}) during phase {w} — "
-             f"{'over it' if worst <= tol else 'NEVER over it, so it never landed ON the surface; '
-              'move the BASE so the body is above the footprint, not merely at its height'}."))
+             f"(x{xr}{ybit}) during phase {w} — {verdict}."))
 
 
 _INVARIANT_KINDS = {

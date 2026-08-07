@@ -10,6 +10,9 @@ __pycache__/
 /archive/
 /archive_output/
 
+# NOTE: /imgs/ is deliberately NOT ignored — it holds the README teaser and the
+# skill gallery, which have to ship with the repo for the README to render.
+
 # C extensions
 *.so
 
@@ -219,3 +222,6 @@ graph_coder.png
 graph_skill_gen.png
 MUJOCO_LOG.TXT
 .DS_Store
+
+# Hand-authored skills + their recordings (regenerable, not part of the framework)
+/hand-author/
