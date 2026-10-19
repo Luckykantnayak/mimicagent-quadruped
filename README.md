@@ -6,14 +6,7 @@
 **From a skill prompt to a robot reference trajectory.**
 
 [Website](https://luckykantnayak.github.io/mimic-agent/) ·
-[Architecture](docs/ARCHITECTURE.md) ·
-[Adding a Robot](docs/ADDING_A_ROBOT.md)
-
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
-[![MuJoCo](https://img.shields.io/badge/MuJoCo-simulator-green.svg)](https://mujoco.org/)
-[![Claude](https://img.shields.io/badge/LLM-Claude-blue.svg)](https://www.anthropic.com/claude)
-[![LangGraph](https://img.shields.io/badge/LangGraph-agent-blue.svg)](https://github.com/langchain-ai/langgraph)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-yellow.svg)](LICENSE)
+[arXiv PDF](https://arxiv.org/pdf/2609.24145)
 
 </div>
 
