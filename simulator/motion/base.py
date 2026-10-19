@@ -201,10 +201,20 @@ class BaseMotionGenerator(ABC):
         """
         Compute BODY-frame foot targets for all legs.
         """
-        return {
-            leg: self.compute_foot_position_body_frame(leg, phase)
-            for leg in self.leg_names
-        }
+        targets = {}
+        for leg in self.leg_names:
+            try:
+                target = np.asarray(self.compute_foot_position_body_frame(leg, phase), dtype=float)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"compute_foot_position_body_frame({leg!r}, {phase}) must return a finite (3,) vector") from exc
+            if target.shape != (3,) or not np.all(np.isfinite(target)):
+                raise ValueError(
+                    f"compute_foot_position_body_frame({leg!r}, {phase}) returned "
+                    f"shape {target.shape}, value {target!r}; expected a finite (3,) body-frame vector. "
+                    "Handle the exact leg names supplied to the constructor."
+                )
+            targets[leg] = target
+        return targets
 
     @abstractmethod
     def compute_foot_position_body_frame(self, leg_name, phase):

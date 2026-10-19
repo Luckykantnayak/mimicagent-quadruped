@@ -1,17 +1,13 @@
 from agents.base_agent import BaseAgent
 from langchain_core.messages import SystemMessage, HumanMessage, get_buffer_string
 from agents.code_gen.state import AgentState
+from agents.code_gen.repair_context import repair_prompt, response_text
 
 
 def make_motion_diagnosis_agent_node(coder_agent: BaseAgent, data, cfg):
     def node(state: AgentState) -> AgentState:
         system_message = data["system"]  # str
-        human_message = data["human"]  # str
-        human_message = human_message + "\n\n Context: " + get_buffer_string(state["messages"]) + "\n\n" + \
-                        ("Ensure to review the previous diagnosis reports and rewards and suggest best. If a previous"
-                         "iteration led to better rewards then take positives from there. Otherwise, take negatives from there"
-                         "Joints are in the order: FL (abd, hip, knee), FR (abd, hip, knee), RL (abd, hip, knee), RR (abd, hip, knee)"
-                         "There can be many causes of joint limit violations (rapid motions/ body sinking/ etc ")
+        human_message = repair_prompt(data["human"], state)
 
         messages = [
             SystemMessage(content=system_message),
@@ -34,6 +30,7 @@ def make_motion_diagnosis_agent_node(coder_agent: BaseAgent, data, cfg):
 
 
         return {
+            "diagnosis": response_text(output),
             "messages": [output],
             'skill_name': state['skill_name'],
             'skill_version': state['skill_version'],

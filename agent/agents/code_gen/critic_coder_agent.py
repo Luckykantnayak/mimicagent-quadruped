@@ -1,18 +1,13 @@
 from agents.base_agent import BaseAgent
 from langchain_core.messages import SystemMessage, HumanMessage, get_buffer_string
 from agents.code_gen.state import AgentState
+from agents.code_gen.repair_context import repair_prompt
 
 
 def make_critic_coder_node(coder_agent: BaseAgent, data, cfg):
     def node(state: AgentState) -> AgentState:
         system_message = data["system"]  # str
-        human_message = data["human"]  # str
-        human_message += "\n\n Context: \n" + get_buffer_string(state["messages"]) + "\n\n" + \
-                        ("Ensure to review the previous diagnosis reports and code and reward. If a previous"
-                         "iteration led to better rewards then take positives from there. Otherwise, take negatives from there"
-                         "Joints are in the order: FL (abd, hip, knee), FR (abd, hip, knee), RL (abd, hip, knee), RR (abd, hip, knee)"
-                         "There can be many causes of joint limit violations (rapid motions/ body sinking/ etc)"
-                         "Also, if you are using any helper functions that are already not there (e.g., 'transform_body_to_world'), please write the helper functions yourself ")
+        human_message = repair_prompt(data["human"], state)
 
         messages = [
             SystemMessage(content=system_message),

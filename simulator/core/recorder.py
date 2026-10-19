@@ -20,6 +20,7 @@ class MimicKitRecorder:
         self.root_quat = []
         self.joints = []
         self.foot_positions = []
+        self.phase = []
 
     def record(self, state):
         """
@@ -43,6 +44,7 @@ class MimicKitRecorder:
         self.root_quat.append(np.asarray(state["root_quat"]).copy())
         self.joints.append(np.asarray(joints).copy())
         self.foot_positions.append(np.asarray(state["foot_positions_world"]).copy())
+        self.phase.append(state.get("phase", float("nan")))
 
     def save(self, path):
         frames = np.vstack(self.frames)
@@ -56,6 +58,7 @@ class MimicKitRecorder:
             root_quat=np.vstack(self.root_quat),
             joints=np.vstack(self.joints),
             foot_positions=np.stack(self.foot_positions),
+            phase=np.asarray(self.phase),
         )
 
         with open(path, "wb") as f:

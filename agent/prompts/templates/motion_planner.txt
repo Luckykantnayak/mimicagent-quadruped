@@ -192,3 +192,73 @@ Think in this order:
 5. Which invariants must hold for realism, safety, and testability?
 
 Express execution logic, coordination, and intent — never raw math.
+
+------------------------------------------------------------
+5. MEASURABLE SUCCESS CRITERIA (REQUIRED)
+------------------------------------------------------------
+
+Add a nonempty `success_criteria` list INSIDE `motion_plan`. These are numeric
+constraints, an explicit exception to the rule against prescribing numerical
+implementation details. The evaluator reads these directly; unknown metrics or
+missing criteria reject the plan. Criteria are frozen before coding and cannot
+be relaxed by the repair agent. Use achievable tolerances, not exact equality.
+
+Each entry has this schema:
+{"name": "unique label", "phase": [0.0, 1.0], "metric": "height_excursion_m",
+ "min": 0.05, "max": 0.30}
+At least one of min/max is required. phase is a non-wrapping [start,end] window
+within one COMPLETE motion cycle. Every complete recorded window is tested;
+cropped boundary windows are excluded. Include checks covering every requested
+segment and both transitions, not just the beginning or the whole-clip average.
+
+Supported metrics (use these exact strings):
+- displacement_x_m, displacement_y_m, displacement_z_m: signed WORLD displacement.
+- speed_x_m_s, speed_y_m_s, speed_z_m_s: mean signed WORLD velocity in meters/second.
+  Whenever the user requests a numerical speed, use a speed metric with a modest
+  tolerance (normally +/-10%); displacement per cycle cannot enforce speed because
+  the coder chooses its own frequency.
+- rotation_body_x_deg, rotation_body_y_deg, rotation_body_z_deg: accumulated
+  signed rotation about instantaneous BODY axes; use for flips (roll=X, pitch=Y).
+- heading_rotation_deg: signed WORLD vertical heading change derived from the
+  horizontal lateral body axis; remains valid at 90-degree pitch, NOT at 90-degree roll.
+- supported_heading_rotation_deg: signed heading change counted ONLY while the
+  specified support, raised-limb clearance and posture all hold together. REQUIRES
+  "legs": [support legs], "raised_legs": [disjoint raised legs], and
+  "nose_up_range": [minimum, maximum degrees]. Raised feet must clear 50 mm and
+  at least one selected support foot must be within 20 mm of contact height
+  (optional min_support). For a requested turn on a subset of legs ALWAYS use
+  this metric, rather than inferring success from independent posture/rotation
+  checks. Set the turn threshold in this criterion to the requested rotation.
+- heading_forward_fraction: fraction of frames rotating in direction +1 or -1
+  faster than 1 degree/second; REQUIRES additional "direction": 1 or -1.
+- horizontal_excursion_m: norm of the WORLD X/Y bounding-box widths.
+- nose_up_min_deg, nose_up_max_deg: extrema of the forward body axis elevation.
+  Negative means nose DOWN, positive means nose UP, irrespective of yaw.
+- height_excursion_m: max minus min base height.
+- support_fraction: fraction of frames with at least one selected foot within
+  20 mm of its calibrated contact height. Optional "min_support": integer count.
+- clearance_min_m, lift_max_m: minimum/maximum selected foot clearance above
+  its calibrated contact height.
+- airborne_fraction: fraction with ALL feet over 20 mm above contact height.
+- leg_motion_min_rad: smallest across selected legs of that leg's largest
+  actuated joint excursion. Excludes passive wheel spin; verifies active leg motion.
+- contact_alternations: smallest selected-leg count of contact/lift transitions.
+- translation_step_max_m, rotation_step_max_deg: largest per-frame base step
+  (200 Hz); use to exclude teleportation and orientation snaps.
+
+support_fraction, clearance_min_m, lift_max_m, leg_motion_min_rad and
+contact_alternations REQUIRE "legs": ["FL", "FR", "RL", "RR"] or a subset.
+All foot checks use ACHIEVED model forward kinematics, not commanded targets.
+
+Select checks that distinguish the requested motion from standing still or a
+different motion. For partial-contact phases combine support on the support
+limbs, clearance on the raised limbs, posture limits, and active leg motion.
+For multi-stage skills use matching phase windows to enforce these together:
+whole-clip rotation alone does NOT prove rotation occurred on the intended limbs.
+A full requested turn needs approximately 360 degrees in its own stage (allow
+small sampling tolerance), not 360 degrees summed across unrelated stages.
+For spins which transition upright, test the level segments too, continued
+heading advancement across both transitions, and return to level by cycle end.
+Ground-support checks remain enabled for all walking, skating and spinning:
+all_feet_off_ground_consistency.enabled=true. It forbids prolonged all-foot
+flight, not lifting just a subset of the feet. Do not disable it for two-legged motion.

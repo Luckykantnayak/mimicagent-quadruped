@@ -165,6 +165,18 @@ def run_all_skills(skill_version, skills=None):
 
         terminal_state = print_stream(app.stream(inputs, stream_mode="values", config={"recursion_limit": 100}))
 
+        passed = bool(terminal_state.get("success") and terminal_state.get("rewrite_mode") == "none")
+        outcome = {"skill": skill["skill_id"], "passed": passed,
+                   "status": "passed" if passed else "failed_or_filtered",
+                   "attempt_counter": terminal_state.get("num_critic_iters"),
+                   "execution_feedback": terminal_state.get("execution_feedback", ""),
+                   "evaluation_feedback": terminal_state.get("evaluation_feedback", "")}
+        outcome_dir = os.path.join(cfg["paths"]["metadata_dir"], skill_version)
+        os.makedirs(outcome_dir, exist_ok=True)
+        with open(os.path.join(outcome_dir, skill["skill_id"] + "_outcome.json"), "w") as f:
+            json.dump(outcome, f, indent=2)
+        print("[outcome] " + json.dumps({"skill": skill["skill_id"], "passed": passed}), flush=True)
+
         token_usage = terminal_state["token_usage"]
 
         t2 = time.time()
@@ -235,3 +247,11 @@ if __name__ == "__main__":
 
     token_usage, time_taken, skills = run_all_skills(skill_version=args.version, skills=skills)
     save_token_usage_time(cfg, token_usage, time_taken, skills)
+    outcomes = [os.path.join(cfg["paths"]["metadata_dir"], args.version, skill["skill_id"] + "_outcome.json")
+                for skill in skills]
+    passed_all = True
+    for path in outcomes:
+        with open(path) as f:
+            passed_all = json.load(f)["passed"] and passed_all
+    if not passed_all:
+        raise SystemExit(1)

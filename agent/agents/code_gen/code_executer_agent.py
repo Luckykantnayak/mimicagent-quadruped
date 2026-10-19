@@ -7,6 +7,7 @@ import subprocess
 from langchain_core.messages import get_buffer_string, AIMessage
 from agents.code_gen.state import AgentState
 from utils.tools import extract_python_code_from_message
+from agents.code_gen.repair_context import response_text
 
 from typing import Dict, Any
 
@@ -45,6 +46,25 @@ def validate_generated_code(code: str):
             "declared as: class <SKILL_NAME>_MotionGenerator(BaseMotionGenerator)."
         )
 
+    imports_base = any(
+        isinstance(n, ast.ImportFrom) and n.module == "motion.base"
+        and any(a.name == "BaseMotionGenerator" and a.asname in (None, "BaseMotionGenerator")
+                for a in n.names) for n in tree.body)
+    candidates = [n for n in tree.body if isinstance(n, ast.ClassDef)
+                  and n.name.endswith("MotionGenerator")]
+    if not imports_base or len(candidates) != 1 or candidates[0].name == "BaseMotionGenerator":
+        return "Import BaseMotionGenerator from motion.base and define exactly one concrete *MotionGenerator subclass; no substitute base classes."
+    cls = candidates[0]
+    if not any(isinstance(b, ast.Name) and b.id == "BaseMotionGenerator" for b in cls.bases):
+        return "The motion class must directly subclass the imported BaseMotionGenerator."
+    if "__abstractmethods__" in code or "update_abstractmethods" in code:
+        return "Do not modify abstract methods dynamically; implement the required callback explicitly."
+    methods = {n.name for n in cls.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    forbidden = methods & {"step", "reset", "compute_all_foot_positions_body_frame", "compute_all_foot_positions_world_frame"}
+    if forbidden:
+        return f"Inherit the fixed pipeline methods unchanged: {sorted(forbidden)}. Override only the per-foot callback, phase, or update_base_motion."
+    if "compute_foot_position_body_frame" not in methods:
+        return "Implement compute_foot_position_body_frame(self, leg_name, phase) explicitly, returning a finite (3,) body-frame vector for every leg."
     return None
 
 
@@ -60,7 +80,7 @@ def make_code_executer_node(cfg):
         """
         try:
             # coder_output = json.loads(output)
-            output = extract_python_code_from_message(get_buffer_string([state['messages'][-1]]))
+            output = extract_python_code_from_message(response_text(state['messages'][-1]))
             skill_class = state["skill_name"]
 
         except Exception as e:
@@ -134,7 +154,16 @@ def make_code_executer_node(cfg):
 
             }
 
-    return CodeExecuterAgent
+    def node(state):
+        result = CodeExecuterAgent(state)
+        result["current_skill_code"] = extract_python_code_from_message(response_text(state["messages"][-1]))
+        result["execution_feedback"] = response_text(result["messages"][0])
+        # A new attempt invalidates the preceding attempt's score and diagnosis.
+        result["evaluation_feedback"] = ""
+        result["diagnosis"] = ""
+        return result
+
+    return node
 
 
 def write_to_file(state: AgentState, code: str, cfg: Dict[str, Any]):

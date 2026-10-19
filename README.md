@@ -101,10 +101,12 @@ Both require a display. A fresh clone contains no generated skills.
 ```
 
 Generation evaluates base height, foot penetration, joint limits, and optional
-all-feet airtime. These checks do not establish that the requested skill was
-performed: inspect rotation, travel, posture, and the replay as well.
-`agent/utils/test_motion_quality.py` is the pipeline scorer, not a standalone
-test suite.
+all-feet airtime. New plans also define phase-specific motion checks, evaluated
+from the achieved poses. A pass covers those declared checks, not physical balance
+or every visual detail; review the replay. Older plans without success criteria
+remain legality-only. See [evaluation details](docs/ARCHITECTURE.md#evaluation-limitations).
+
+Offline regression tests: `(cd agent && python -m unittest discover -s tests -v)`.
 
 ## Notes
 

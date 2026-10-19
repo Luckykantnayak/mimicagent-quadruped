@@ -1,6 +1,7 @@
 from agents.base_agent import BaseAgent
 from langchain_core.messages import SystemMessage, HumanMessage, get_buffer_string
 from agents.code_gen.state import AgentState
+from agents.code_gen.repair_context import response_text
 
 def make_coder_node(coder_agent: BaseAgent, data):
     def node(state: AgentState) -> AgentState:
@@ -30,6 +31,7 @@ def make_coder_node(coder_agent: BaseAgent, data):
             token_dict = {"input_tokens": input_tokens, "output_tokens": output_tokens}
 
         return {
+            "motion_plan": response_text(state["messages"][-1]),
             "messages": [output],
             'skill_name': state['skill_name'],
             'skill_version': state['skill_version'],
@@ -46,7 +48,7 @@ def make_coder_node(coder_agent: BaseAgent, data):
 def get_context(state: AgentState):
     motion_plan = ""
     try:
-        motion_plan = get_buffer_string([state["messages"][-1]])
+        motion_plan = response_text(state["messages"][-1])
 
     except Exception as e:
         print(e)

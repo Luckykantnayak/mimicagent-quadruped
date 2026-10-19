@@ -183,6 +183,7 @@ class MotionControllerRunner:
 
         return {
             "time": motion_state["time"],
+            "phase": motion_state["phase"],
             "root_pos": root_pos.copy(),
             "root_quat": root_quat.copy(),
             "joints": self.data.qpos[7:].copy(),

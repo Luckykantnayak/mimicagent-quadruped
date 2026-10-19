@@ -3,7 +3,7 @@ dataset:
   skills_per_generation: 20
 
 llm:
-  model: claude-sonnet-5
+  model: claude-sonnet-5-5
   temperature: 1.0        # 1.0 is the API default; Sonnet 5 rejects NON-default sampling params
   max_tokens: 24000       # raised from 16000: Sonnet 5 runs adaptive thinking by default, and
                           # max_tokens caps thinking + response text together. Kept under the

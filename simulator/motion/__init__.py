@@ -120,6 +120,9 @@ def _get_motion_generator_from_module(module):
             continue
         if inspect.isabstract(obj):
             continue
+        for name in ("step", "reset", "compute_all_foot_positions_body_frame", "compute_all_foot_positions_world_frame"):
+            if getattr(obj, name) is not getattr(BaseMotionGenerator, name):
+                raise RuntimeError(f"{obj.__name__} must inherit {name} unchanged from BaseMotionGenerator.")
         candidates.append(obj)
 
     if not candidates and named_but_not_subclass:

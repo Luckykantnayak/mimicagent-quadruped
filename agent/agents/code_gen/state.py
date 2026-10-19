@@ -13,3 +13,8 @@ class AgentState(TypedDict):
     rewrite_mode: str
     skill_desc: Dict[str, Any]
     token_usage: Dict[str, Any]
+    current_skill_code: str
+    motion_plan: str
+    execution_feedback: str
+    evaluation_feedback: str
+    diagnosis: str

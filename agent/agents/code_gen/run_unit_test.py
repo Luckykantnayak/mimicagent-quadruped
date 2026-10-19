@@ -4,6 +4,7 @@ import os
 
 from agents.code_gen.state import AgentState
 from utils.test_motion_quality import evaluate_trajectory, save_report
+from utils.skill_fidelity import append_fidelity
 from utils.read_latest_version import get_latest_skill_file
 
 from langchain_core.messages import AIMessage
@@ -77,6 +78,9 @@ def make_unit_test_node(cfg):
 
         # Get rewrite mode
         feedback = evaluate_trajectory(traj=traj, joint_limits=joint_limits, skill_test_config=constraints, dt=1/200)
+        feedback = append_fidelity(feedback, traj,
+                                   motion_plan["motion_plan"].get("success_criteria"),
+                                   cfg["paths"]["simulator_dir"])
         summary = feedback["summary"]
 
         if not summary["passed_all_discrete"]:
@@ -141,6 +145,7 @@ def make_unit_test_node(cfg):
         save_report(feedback, skill_name=state["skill_name"], out_dir=skill_out_dir)
 
         return {
+            "evaluation_feedback": json.dumps(critic_payload),
             "messages": [AIMessage(json.dumps(critic_payload))],
             'skill_name': state['skill_name'],
             'skill_version': state['skill_version'],

@@ -44,6 +44,19 @@ and failed quality checks can reach the critic, bounded by `critic.max_iters`.
 Agent commands run from `agent/`; simulator commands run from the repository root.
 These working directories matter for imports and relative paths.
 
+Diagnosis and repair receive the current code, plan, execution error and evaluation
+feedback explicitly, along with the live base interface. They do not replay the
+entire history. Source validation rejects substitute base classes, missing foot
+callbacks and overrides of the fixed step/reset pipeline; runtime checks require
+finite three-element foot targets.
+
+Each API call logs its model, stop reason, token usage and visible-text length.
+Normal successful calls retain the configured settings. If Sonnet 5.5 hits its
+output limit, the wrapper retries once with `thinking.type=between_tools` and
+`output_config.effort=high`, then stops on another empty/truncated response.
+Both attempts count toward usage. This is still the same Claude API pipeline,
+not an external coding agent.
+
 ## Motion interface
 
 Skills subclass [BaseMotionGenerator](../simulator/motion/base.py):
@@ -89,6 +102,7 @@ skill_output/<robot>/
   results/<version>/<skill>/<skill>_NNNN.json
   trajectories/<version>/<robot>_<skill>.pkl
   metadata/<skill>.json
+  metadata/<version>/<skill>_outcome.json
 ```
 
 The loader selects the highest numbered code file. Trajectories at the same
@@ -96,7 +110,8 @@ robot/skill/version path can be overwritten by later recordings. Preserve an
 attempt's code, plan, report, and trajectory together for comparisons.
 
 The recorder exports MimicKit `fps`, `loop_mode`, and `frames`, plus evaluation
-arrays `root_pos`, `root_quat`, `joints`, and `foot_positions`.
+arrays `root_pos`, `root_quat`, `joints`, `foot_positions`, and `phase`.
+The CLI writes an explicit outcome and exits nonzero if a skill fails or is filtered.
 
 ## Evaluation limitations
 
@@ -104,14 +119,31 @@ The current scorer checks base height, foot ground penetration, joint limits,
 and all-feet airtime when enabled by the plan. Several thresholds and joint
 indices are Go2-W-specific.
 
-These are legality checks, not skill-fidelity checks: a stationary pose can pass.
-Foot-position records currently contain commanded targets, rather than a separate
-measurement of achieved IK positions. Whole-body clearance and dynamic stability
-are not validated. Review the replay and trajectory before treating a run as successful.
+New plans must also declare `motion_plan.success_criteria`: named, phase-specific
+numeric checks for displacement, rotation, posture, support, clearance, active leg
+motion or continuity. See `agent/utils/skill_fidelity.py` and the planner template
+for the supported schema. A malformed contract is retried once, then rejected.
+Criteria remain fixed throughout code repair. Failures reach the same critic loop.
 
-There is no standalone test suite or automatic preview-GIF command in this checkout.
-The humanoid repository's goal contracts, consolidated per-skill outputs, headless
-CLI, and scoring commands should not be assumed available.
+Fidelity checks reconstruct achieved foot positions from saved root/joint poses
+using model forward kinematics; the legacy `foot_positions` array remains commanded
+targets for compatibility. Complete phase windows are checked independently,
+so rotation outside the intended support phase cannot satisfy a phase-local turn.
+Old plans without criteria retain their legality scores and report
+`fidelity_checked=false`; they must not be interpreted as verified skill fidelity.
+
+These checks establish only the declared measurable criteria. Planner coverage can
+still be incomplete. Whole-body clearance and dynamic stability are not validated.
+Review the replay before treating a run as successful. The simulator remains kinematic.
+
+Run focused offline regression tests with:
+
+```bash
+cd agent && python -m unittest discover -s tests -v
+```
+
+The humanoid repository's consolidated per-skill outputs, headless CLI and
+scoring commands should not be assumed available.
 
 ## Local skill libraries
 
